@@ -13,15 +13,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { useProfile } from "@/hooks/useProfile";
+import { Badge } from "@/components/ui/badge";
+
+const roleLabels: Record<string, string> = {
+  super_admin: "Super Admin",
+  gerente: "Gerente",
+  cajero: "Cajero",
+  barista: "Barista",
+};
 
 export function Header() {
   const { user } = useAuthStore();
+  const { data: profile } = useProfile();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "AC";
+  const initials = profile?.full_name
+    ? profile.full_name.slice(0, 2).toUpperCase()
+    : (user?.email?.slice(0, 2).toUpperCase() ?? "AC");
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
@@ -43,9 +55,19 @@ export function Header() {
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              {user?.email}
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex flex-col gap-1">
+              <span className="text-sm font-medium">
+                {profile?.full_name || "Usuario"}
+              </span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {user?.email}
+              </span>
+              {profile?.role && (
+                <Badge variant="secondary" className="w-fit text-xs mt-1">
+                  {roleLabels[profile.role]}
+                </Badge>
+              )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem

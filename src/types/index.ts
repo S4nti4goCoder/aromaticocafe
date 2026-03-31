@@ -12,11 +12,11 @@ export interface Profile {
 }
 
 export interface AuthUser {
-  id: string
-  email: string
+  id: string;
+  email: string;
 }
 
 export interface AuthSession {
-  user: AuthUser
-  access_token: string
+  user: AuthUser;
+  access_token: string;
 }
