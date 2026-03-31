@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { NavLink } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -8,49 +8,67 @@ import {
   Settings,
   ChevronLeft,
   Coffee,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/usePermissions";
+import type { Role } from "@/types";
 
 interface SidebarProps {
-  isOpen: boolean
-  onToggle: () => void
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  requiredRole: Role;
+}
+
+const navItems: NavItem[] = [
   {
-    label: 'Panel',
-    href: '/dashboard',
+    label: "Panel",
+    href: "/dashboard",
     icon: LayoutDashboard,
+    requiredRole: "barista",
   },
   {
-    label: 'Productos',
-    href: '/products',
+    label: "Productos",
+    href: "/products",
     icon: ShoppingBag,
+    requiredRole: "cajero",
   },
   {
-    label: 'Trabajadores',
-    href: '/workers',
+    label: "Trabajadores",
+    href: "/workers",
     icon: Users,
+    requiredRole: "gerente",
   },
   {
-    label: 'Contabilidad',
-    href: '/accounting',
+    label: "Contabilidad",
+    href: "/accounting",
     icon: BookOpen,
+    requiredRole: "gerente",
   },
   {
-    label: 'Configuración',
-    href: '/settings',
+    label: "Configuración",
+    href: "/settings",
     icon: Settings,
+    requiredRole: "super_admin",
   },
-]
+];
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+  const { hasRole } = usePermissions();
+
+  const visibleItems = navItems.filter((item) => hasRole(item.requiredRole));
+
   return (
     <motion.aside
       animate={{ width: isOpen ? 240 : 64 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
       className="relative flex h-screen flex-col border-r bg-sidebar text-sidebar-foreground"
     >
       {/* Logo */}
@@ -79,17 +97,17 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground'
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground",
               )
             }
           >
@@ -130,5 +148,5 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         </Button>
       </div>
     </motion.aside>
-  )
+  );
 }

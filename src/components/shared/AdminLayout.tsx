@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import { Sidebar } from '@/components/shared/Sidebar'
-import { Header } from '@/components/shared/Header'
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "@/components/shared/Sidebar";
+import { Header } from "@/components/shared/Header";
+import { useUIStore } from "@/store/uiStore";
 
 export function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { sidebarOpen, toggleSidebar } = useUIStore();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen((prev) => !prev)} />
+      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
@@ -18,5 +18,5 @@ export function AdminLayout() {
         </main>
       </div>
     </div>
-  )
+  );
 }
