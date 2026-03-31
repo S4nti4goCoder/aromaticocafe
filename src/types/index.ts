@@ -143,8 +143,11 @@ export interface Attendance {
 export type PermissionModule =
   | "categories"
   | "products"
+  | "caja"
+  | "inventory"
   | "workers"
   | "accounting"
+  | "appearance"
   | "settings";
 
 export interface WorkerPermission {

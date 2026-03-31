@@ -7,8 +7,11 @@ import { ChangePasswordPage } from "@/features/auth/ChangePasswordPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
+import { CajaPage } from "@/features/caja/CajaPage";
+import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { WorkersPage } from "@/features/workers/WorkersPage";
 import { AccountingPage } from "@/features/accounting/AccountingPage";
+import { AppearancePage } from "@/features/appearance/AppearancePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 
 export function AppRouter() {
@@ -30,12 +33,24 @@ export function AppRouter() {
             <Route path="/products" element={<ProductsPage />} />
           </Route>
 
+          <Route element={<RoleRoute module="caja" />}>
+            <Route path="/caja" element={<CajaPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="inventory" />}>
+            <Route path="/inventory" element={<InventoryPage />} />
+          </Route>
+
           <Route element={<RoleRoute module="workers" />}>
             <Route path="/workers" element={<WorkersPage />} />
           </Route>
 
           <Route element={<RoleRoute module="accounting" />}>
             <Route path="/accounting" element={<AccountingPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="appearance" />}>
+            <Route path="/appearance" element={<AppearancePage />} />
           </Route>
 
           <Route element={<RoleRoute module="settings" />}>

@@ -72,7 +72,6 @@ export function AccountingPage() {
   const deleteTransaction = useDeleteTransaction();
 
   const isCashOpen = cashRegister?.status === "abierta";
-  const isCashClosed = cashRegister?.status === "cerrada";
 
   const handleOpenCash = async () => {
     if (!openingAmount) return;

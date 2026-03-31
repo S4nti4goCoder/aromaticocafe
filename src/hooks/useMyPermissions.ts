@@ -7,8 +7,11 @@ import type { PermissionsMap, PermissionModule } from "@/types";
 const MODULES: PermissionModule[] = [
   "categories",
   "products",
+  "caja",
+  "inventory",
   "workers",
   "accounting",
+  "appearance",
   "settings",
 ];
 
