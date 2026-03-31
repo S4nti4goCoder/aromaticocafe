@@ -8,6 +8,7 @@ import {
   Settings,
   ChevronLeft,
   Coffee,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +34,12 @@ const navItems: NavItem[] = [
     href: "/dashboard",
     icon: LayoutDashboard,
     requiredRole: "barista",
+  },
+  {
+    label: "Categorías",
+    href: "/categories",
+    icon: Tag,
+    requiredRole: "cajero",
   },
   {
     label: "Productos",
