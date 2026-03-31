@@ -207,3 +207,33 @@ export interface TransactionFormData {
   description: string;
   payment_method: PaymentMethod;
 }
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string | null;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Sale {
+  id: string;
+  cash_register_id: string | null;
+  seller_id: string | null;
+  total: number;
+  discount: number;
+  payment_method: PaymentMethod;
+  notes: string | null;
+  created_at: string;
+  items?: SaleItem[];
+}
+
+export interface CartItem {
+  product_id: string;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  subtotal: number;
+}
