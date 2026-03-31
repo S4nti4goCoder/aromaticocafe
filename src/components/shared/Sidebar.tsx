@@ -13,8 +13,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { usePermissions } from "@/hooks/usePermissions";
-import type { Role } from "@/types";
+import { useMyPermissions } from "@/hooks/useMyPermissions";
+import { useProfile } from "@/hooks/useProfile";
+import type { PermissionModule } from "@/types";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  requiredRole: Role;
+  module: PermissionModule | "dashboard";
 }
 
 const navItems: NavItem[] = [
@@ -33,44 +34,53 @@ const navItems: NavItem[] = [
     label: "Panel",
     href: "/dashboard",
     icon: LayoutDashboard,
-    requiredRole: "barista",
+    module: "dashboard",
   },
   {
     label: "Categorías",
     href: "/categories",
     icon: Tag,
-    requiredRole: "cajero",
+    module: "categories",
   },
   {
     label: "Productos",
     href: "/products",
     icon: ShoppingBag,
-    requiredRole: "cajero",
+    module: "products",
   },
   {
     label: "Trabajadores",
     href: "/workers",
     icon: Users,
-    requiredRole: "gerente",
+    module: "workers",
   },
   {
     label: "Contabilidad",
     href: "/accounting",
     icon: BookOpen,
-    requiredRole: "gerente",
+    module: "accounting",
   },
   {
     label: "Configuración",
     href: "/settings",
     icon: Settings,
-    requiredRole: "super_admin",
+    module: "settings",
   },
 ];
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
-  const { hasRole } = usePermissions();
+  const { data: profile } = useProfile();
+  const { data: permissions } = useMyPermissions();
 
-  const visibleItems = navItems.filter((item) => hasRole(item.requiredRole));
+  const visibleItems = navItems.filter((item) => {
+    // Panel siempre visible
+    if (item.module === "dashboard") return true;
+    // super_admin y gerente ven todo
+    if (profile?.role === "super_admin" || profile?.role === "gerente")
+      return true;
+    // Para otros roles, verificar permisos granulares
+    return permissions?.[item.module as PermissionModule]?.can_view === true;
+  });
 
   return (
     <motion.aside

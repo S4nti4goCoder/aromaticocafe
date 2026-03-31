@@ -1,18 +1,20 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AdminLayout } from '@/components/shared/AdminLayout'
-import { ProtectedRoute } from '@/routes/ProtectedRoute'
-import { LoginPage } from '@/features/auth/LoginPage'
-import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { CategoriesPage } from '@/features/categories/CategoriesPage'
-import { ProductsPage } from '@/features/products/ProductsPage'
-import { WorkersPage } from '@/features/workers/WorkersPage'
-import { AccountingPage } from '@/features/accounting/AccountingPage'
-import { SettingsPage } from '@/features/settings/SettingsPage'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AdminLayout } from "@/components/shared/AdminLayout";
+import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { LoginPage } from "@/features/auth/LoginPage";
+import { ChangePasswordPage } from "@/features/auth/ChangePasswordPage";
+import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { CategoriesPage } from "@/features/categories/CategoriesPage";
+import { ProductsPage } from "@/features/products/ProductsPage";
+import { WorkersPage } from "@/features/workers/WorkersPage";
+import { AccountingPage } from "@/features/accounting/AccountingPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
@@ -28,5 +30,5 @@ export function AppRouter() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-  )
+  );
 }
