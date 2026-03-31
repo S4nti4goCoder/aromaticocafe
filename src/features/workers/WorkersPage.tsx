@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useWorkers, useDeleteWorker } from "@/hooks/useWorkers";
 import { WorkerFormModal } from "@/features/workers/WorkerFormModal";
-import { RoleGuard } from "@/components/shared/RoleGuard";
+import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import type { Worker } from "@/types";
 
 const statusConfig = {
@@ -55,12 +55,12 @@ export function WorkersPage() {
             Gestiona el equipo de Aromático Café
           </p>
         </div>
-        <RoleGuard requiredRole="gerente">
+        <PermissionGuard module="workers" action="can_create">
           <Button onClick={() => setModal({ open: true, worker: null })}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo trabajador
           </Button>
-        </RoleGuard>
+        </PermissionGuard>
       </div>
 
       <div className="relative max-w-sm">
@@ -153,8 +153,8 @@ export function WorkersPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <RoleGuard requiredRole="gerente">
-                      <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2">
+                      <PermissionGuard module="workers" action="can_edit">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -162,18 +162,18 @@ export function WorkersPage() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <RoleGuard requiredRole="super_admin">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deleteWorker.mutate(worker.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </RoleGuard>
-                      </div>
-                    </RoleGuard>
+                      </PermissionGuard>
+                      <PermissionGuard module="workers" action="can_delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => deleteWorker.mutate(worker.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </PermissionGuard>
+                    </div>
                   </td>
                 </motion.tr>
               ))}

@@ -1,9 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type {
-  PermissionModule,
-  PermissionsMap,
-} from "@/types";
+import type { PermissionModule, PermissionsMap } from "@/types";
 
 const MODULES: PermissionModule[] = [
   "categories",
@@ -64,9 +61,12 @@ export function useSaveWorkerPermissions(workerId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalida tanto los permisos del trabajador como los permisos propios
       queryClient.invalidateQueries({
         queryKey: ["worker_permissions", workerId],
       });
+      // Invalida todos los my_permissions para que cualquier sesión activa se actualice
+      queryClient.invalidateQueries({ queryKey: ["my_permissions"] });
     },
   });
 }

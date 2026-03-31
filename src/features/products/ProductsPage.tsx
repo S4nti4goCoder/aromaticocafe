@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { ProductFormModal } from "@/features/products/ProductFormModal";
-import { RoleGuard } from "@/components/shared/RoleGuard";
+import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import type { Product } from "@/types";
 
 export function ProductsPage() {
@@ -42,12 +42,12 @@ export function ProductsPage() {
             Gestiona el catálogo de productos
           </p>
         </div>
-        <RoleGuard requiredRole="gerente">
+        <PermissionGuard module="products" action="can_create">
           <Button onClick={() => setModal({ open: true, product: null })}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo producto
           </Button>
-        </RoleGuard>
+        </PermissionGuard>
       </div>
 
       <div className="relative max-w-sm">
@@ -137,8 +137,8 @@ export function ProductsPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <RoleGuard requiredRole="gerente">
-                      <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2">
+                      <PermissionGuard module="products" action="can_edit">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -146,6 +146,8 @@ export function ProductsPage() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
+                      </PermissionGuard>
+                      <PermissionGuard module="products" action="can_delete">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -154,8 +156,8 @@ export function ProductsPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </RoleGuard>
+                      </PermissionGuard>
+                    </div>
                   </td>
                 </motion.tr>
               ))}
