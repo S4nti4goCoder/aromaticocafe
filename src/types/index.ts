@@ -73,39 +73,39 @@ export interface ProductFormData {
 export type WorkerStatus = "activo" | "inactivo" | "vacaciones";
 
 export interface Worker {
-  id: string
-  user_id: string | null
-  full_name: string
-  email: string
-  phone: string | null
-  role: Role
-  status: WorkerStatus
-  avatar_url: string | null
-  address: string | null
-  birth_date: string | null
-  hire_date: string
-  base_salary: number
-  transport_allowance: number
-  commission_percentage: number
-  notes: string | null
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string | null;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: Role;
+  status: WorkerStatus;
+  avatar_url: string | null;
+  address: string | null;
+  birth_date: string | null;
+  hire_date: string;
+  base_salary: number;
+  transport_allowance: number;
+  commission_percentage: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface WorkerFormData {
-  full_name: string
-  email: string
-  phone: string
-  role: Role
-  status: WorkerStatus
-  address: string
-  birth_date: string
-  hire_date: string
-  base_salary: string
-  transport_allowance: string
-  commission_percentage: string
-  notes: string
-  avatar_url: string | null
+  full_name: string;
+  email: string;
+  phone: string;
+  role: Role;
+  status: WorkerStatus;
+  address: string;
+  birth_date: string;
+  hire_date: string;
+  base_salary: string;
+  transport_allowance: string;
+  commission_percentage: string;
+  notes: string;
+  avatar_url: string | null;
 }
 
 export interface Shift {
@@ -164,4 +164,43 @@ export interface PermissionsMap {
     can_edit: boolean;
     can_delete: boolean;
   };
+}
+
+export type TransactionType = "ingreso" | "egreso";
+export type CashRegisterStatus = "abierta" | "cerrada";
+export type PaymentMethod = "efectivo" | "tarjeta" | "transferencia" | "otro";
+
+export interface CashRegister {
+  id: string;
+  date: string;
+  opened_by: string | null;
+  closed_by: string | null;
+  opening_amount: number;
+  closing_amount: number | null;
+  status: CashRegisterStatus;
+  notes: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  created_at: string;
+}
+
+export interface Transaction {
+  id: string;
+  cash_register_id: string | null;
+  type: TransactionType;
+  amount: number;
+  category: string;
+  description: string | null;
+  payment_method: PaymentMethod;
+  registered_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionFormData {
+  type: TransactionType;
+  amount: string;
+  category: string;
+  description: string;
+  payment_method: PaymentMethod;
 }
