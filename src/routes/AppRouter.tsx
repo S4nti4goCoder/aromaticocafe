@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AdminLayout } from "@/components/shared/AdminLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { RoleRoute } from "@/routes/RoleRoute";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { ChangePasswordPage } from "@/features/auth/ChangePasswordPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
@@ -14,16 +15,32 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/change-password" element={<ChangePasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+
         <Route element={<AdminLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/workers" element={<WorkersPage />} />
-          <Route path="/accounting" element={<AccountingPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+
+          <Route element={<RoleRoute module="categories" />}>
+            <Route path="/categories" element={<CategoriesPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="products" />}>
+            <Route path="/products" element={<ProductsPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="workers" />}>
+            <Route path="/workers" element={<WorkersPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="accounting" />}>
+            <Route path="/accounting" element={<AccountingPage />} />
+          </Route>
+
+          <Route element={<RoleRoute module="settings" />}>
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Route>
       </Route>
 

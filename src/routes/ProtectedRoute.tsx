@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2 } from "lucide-react";
@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 export function ProtectedRoute() {
   const { user, isLoading } = useAuthStore();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const location = useLocation();
 
   if (isLoading || isLoadingProfile) {
     return (
@@ -17,9 +18,20 @@ export function ProtectedRoute() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Fuerza cambio de contraseña si es primer login
-  if (profile?.must_change_password) {
+  // Si debe cambiar contraseña y no está ya en esa página
+  if (
+    profile?.must_change_password &&
+    location.pathname !== "/change-password"
+  ) {
     return <Navigate to="/change-password" replace />;
+  }
+
+  // Si ya cambió la contraseña y trata de ir a /change-password, redirigir al dashboard
+  if (
+    !profile?.must_change_password &&
+    location.pathname === "/change-password"
+  ) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

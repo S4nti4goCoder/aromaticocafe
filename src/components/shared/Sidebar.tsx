@@ -70,15 +70,15 @@ const navItems: NavItem[] = [
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const { data: profile } = useProfile();
-  const { data: permissions } = useMyPermissions();
+  const { data: permissions, isLoading: isLoadingPermissions } =
+    useMyPermissions();
 
   const visibleItems = navItems.filter((item) => {
-    // Panel siempre visible
     if (item.module === "dashboard") return true;
-    // super_admin y gerente ven todo
-    if (profile?.role === "super_admin" || profile?.role === "gerente")
+    if (!profile) return false;
+    if (profile.role === "super_admin" || profile.role === "gerente")
       return true;
-    // Para otros roles, verificar permisos granulares
+    if (isLoadingPermissions) return false;
     return permissions?.[item.module as PermissionModule]?.can_view === true;
   });
 
