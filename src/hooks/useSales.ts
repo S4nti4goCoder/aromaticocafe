@@ -79,6 +79,16 @@ export function useCreateSale() {
 
       if (itemsError) throw itemsError;
 
+      // Descontar stock automáticamente por cada item vendido
+      for (const item of cartItems) {
+        await supabase.rpc("update_product_stock", {
+          p_product_id: item.product_id,
+          p_type: "salida",
+          p_quantity: item.quantity,
+          p_reason: `Venta #${sale.id.slice(0, 8)}`,
+        });
+      }
+
       // Registrar como ingreso en transactions
       await supabase.from("transactions").insert({
         cash_register_id: cashRegisterId,
@@ -98,6 +108,8 @@ export function useCreateSale() {
       });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["cash_register"] });
+      queryClient.invalidateQueries({ queryKey: ["product_stock"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_movements"] });
     },
   });
 }
@@ -114,6 +126,7 @@ export function useDeleteSale() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["product_stock"] });
     },
   });
 }

@@ -70,6 +70,17 @@ export interface ProductFormData {
   image_url: string | null;
 }
 
+export interface ProductStock {
+  product_id: string;
+  product_name: string;
+  image_url: string | null;
+  category_id: string | null;
+  category_name: string | null;
+  is_active: boolean;
+  stock: number;
+  last_movement: string | null;
+}
+
 export type WorkerStatus = "activo" | "inactivo" | "vacaciones";
 
 export interface Worker {
@@ -236,4 +247,18 @@ export interface CartItem {
   product_price: number;
   quantity: number;
   subtotal: number;
+}
+
+export type InventoryMovementType = "entrada" | "salida" | "ajuste";
+
+export interface InventoryMovement {
+  id: string;
+  product_id: string;
+  type: InventoryMovementType;
+  quantity: number;
+  previous_stock: number;
+  new_stock: number;
+  reason: string | null;
+  registered_by: string | null;
+  created_at: string;
 }
