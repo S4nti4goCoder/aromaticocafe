@@ -153,11 +153,9 @@ export interface Attendance {
 
 export type PermissionModule =
   | "inventory"
-  | "promotions"
   | "caja"
   | "workers"
   | "accounting"
-  | "appearance"
   | "settings";
 
 export type PromotionType =

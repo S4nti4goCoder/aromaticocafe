@@ -11,11 +11,11 @@ import {
   ChevronDown,
   CreditCard,
   Package,
-  Palette,
   Tag,
   ShoppingBag,
   BarChart2,
   Percent,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -29,17 +29,18 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+interface NavChild {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+}
+
 interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
   module: PermissionModule | "dashboard";
-  children?: {
-    label: string;
-    href: string;
-    icon: React.ElementType;
-    module: PermissionModule;
-  }[];
+  children?: NavChild[];
 }
 
 const navItems: NavItem[] = [
@@ -55,31 +56,11 @@ const navItems: NavItem[] = [
     icon: Package,
     module: "inventory",
     children: [
-      {
-        label: "Categorías",
-        href: "/inventory/categories",
-        icon: Tag,
-        module: "inventory",
-      },
-      {
-        label: "Productos",
-        href: "/inventory/products",
-        icon: ShoppingBag,
-        module: "inventory",
-      },
-      {
-        label: "Stock",
-        href: "/inventory/stock",
-        icon: BarChart2,
-        module: "inventory",
-      },
+      { label: "Categorías", href: "/inventory/categories", icon: Tag },
+      { label: "Productos", href: "/inventory/products", icon: ShoppingBag },
+      { label: "Stock", href: "/inventory/stock", icon: BarChart2 },
+      { label: "Promociones", href: "/inventory/promotions", icon: Percent },
     ],
-  },
-  {
-    label: "Promociones",
-    href: "/promotions",
-    icon: Percent,
-    module: "promotions",
   },
   {
     label: "Caja",
@@ -100,16 +81,14 @@ const navItems: NavItem[] = [
     module: "accounting",
   },
   {
-    label: "Apariencia",
-    href: "/appearance",
-    icon: Palette,
-    module: "appearance",
-  },
-  {
     label: "Configuración",
     href: "/settings",
     icon: Settings,
     module: "settings",
+    children: [
+      { label: "Apariencia", href: "/settings/appearance", icon: Palette },
+      { label: "Ajustes", href: "/settings/general", icon: Settings },
+    ],
   },
 ];
 
@@ -135,12 +114,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     );
   };
 
-  const visibleItems = navItems.filter((item) => {
-    if (item.children) {
-      return canViewModule(item.module);
-    }
-    return canViewModule(item.module);
-  });
+  const visibleItems = navItems.filter((item) => canViewModule(item.module));
 
   return (
     <motion.aside
