@@ -3,10 +3,9 @@ import { supabase } from "@/lib/supabase";
 import type { PermissionModule, PermissionsMap } from "@/types";
 
 const MODULES: PermissionModule[] = [
-  "categories",
-  "products",
-  "caja",
   "inventory",
+  "promotions",
+  "caja",
   "workers",
   "accounting",
   "appearance",

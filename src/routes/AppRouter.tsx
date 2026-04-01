@@ -5,10 +5,11 @@ import { RoleRoute } from "@/routes/RoleRoute";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { ChangePasswordPage } from "@/features/auth/ChangePasswordPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { CategoriesPage } from "@/features/categories/CategoriesPage";
-import { ProductsPage } from "@/features/products/ProductsPage";
+import { CategoriesPage } from "@/features/inventory/CategoriesPage";
+import { ProductsPage } from "@/features/inventory/ProductsPage";
+import { StockPage } from "@/features/inventory/StockPage";
+import { PromotionsPage } from "@/features/promotions/PromotionsPage";
 import { CajaPage } from "@/features/caja/CajaPage";
-import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { WorkersPage } from "@/features/workers/WorkersPage";
 import { AccountingPage } from "@/features/accounting/AccountingPage";
 import { AppearancePage } from "@/features/appearance/AppearancePage";
@@ -25,20 +26,18 @@ export function AppRouter() {
         <Route element={<AdminLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
 
-          <Route element={<RoleRoute module="categories" />}>
-            <Route path="/categories" element={<CategoriesPage />} />
+          <Route element={<RoleRoute module="inventory" />}>
+            <Route path="/inventory/categories" element={<CategoriesPage />} />
+            <Route path="/inventory/products" element={<ProductsPage />} />
+            <Route path="/inventory/stock" element={<StockPage />} />
           </Route>
 
-          <Route element={<RoleRoute module="products" />}>
-            <Route path="/products" element={<ProductsPage />} />
+          <Route element={<RoleRoute module="promotions" />}>
+            <Route path="/promotions" element={<PromotionsPage />} />
           </Route>
 
           <Route element={<RoleRoute module="caja" />}>
             <Route path="/caja" element={<CajaPage />} />
-          </Route>
-
-          <Route element={<RoleRoute module="inventory" />}>
-            <Route path="/inventory" element={<InventoryPage />} />
           </Route>
 
           <Route element={<RoleRoute module="workers" />}>

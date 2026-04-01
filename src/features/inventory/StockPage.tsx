@@ -19,7 +19,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { StockMovementModal } from "@/features/inventory/StockMovementModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 
-export function InventoryPage() {
+export function StockPage() {
   const [search, setSearch] = useState("");
   const [movementModal, setMovementModal] = useState(false);
 
@@ -64,7 +64,7 @@ export function InventoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Inventario</h2>
+          <h2 className="text-2xl font-bold">Stock</h2>
           <p className="text-muted-foreground text-sm">
             Control de stock de productos
           </p>
@@ -77,7 +77,6 @@ export function InventoryPage() {
         </PermissionGuard>
       </div>
 
-      {/* Alertas stock bajo */}
       {lowStockProducts.length > 0 && (
         <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -112,7 +111,6 @@ export function InventoryPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB PRODUCTOS */}
         <TabsContent value="products" className="mt-4 space-y-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -238,7 +236,6 @@ export function InventoryPage() {
           )}
         </TabsContent>
 
-        {/* TAB MOVIMIENTOS */}
         <TabsContent value="movements" className="mt-4">
           {loadingMovements ? (
             <div className="space-y-2">

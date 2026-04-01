@@ -152,14 +152,52 @@ export interface Attendance {
 }
 
 export type PermissionModule =
-  | "categories"
-  | "products"
-  | "caja"
   | "inventory"
+  | "promotions"
+  | "caja"
   | "workers"
   | "accounting"
   | "appearance"
   | "settings";
+
+export type PromotionType =
+  | "descuento_porcentaje"
+  | "descuento_precio"
+  | "2x1"
+  | "precio_fijo";
+
+export type PromotionAppliesTo = "producto" | "categoria" | "todos";
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description: string | null;
+  type: PromotionType;
+  value: number;
+  applies_to: PromotionAppliesTo;
+  product_id: string | null;
+  category_id: string | null;
+  is_active: boolean;
+  starts_at: string;
+  ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+  product?: Product;
+  category?: Category;
+}
+
+export interface PromotionFormData {
+  name: string;
+  description: string;
+  type: PromotionType;
+  value: string;
+  applies_to: PromotionAppliesTo;
+  product_id: string;
+  category_id: string;
+  is_active: boolean;
+  starts_at: string;
+  ends_at: string;
+}
 
 export interface WorkerPermission {
   id: string;

@@ -8,11 +8,14 @@ import {
   Settings,
   ChevronLeft,
   Coffee,
-  Store,
   ChevronDown,
   CreditCard,
   Package,
   Palette,
+  Tag,
+  ShoppingBag,
+  BarChart2,
+  Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +37,7 @@ interface NavItem {
   children?: {
     label: string;
     href: string;
+    icon: React.ElementType;
     module: PermissionModule;
   }[];
 }
@@ -46,26 +50,42 @@ const navItems: NavItem[] = [
     module: "dashboard",
   },
   {
-    label: "Tienda",
-    href: "/store",
-    icon: Store,
-    module: "categories",
+    label: "Inventario",
+    href: "/inventory",
+    icon: Package,
+    module: "inventory",
     children: [
-      { label: "Categorías", href: "/categories", module: "categories" },
-      { label: "Productos", href: "/products", module: "products" },
+      {
+        label: "Categorías",
+        href: "/inventory/categories",
+        icon: Tag,
+        module: "inventory",
+      },
+      {
+        label: "Productos",
+        href: "/inventory/products",
+        icon: ShoppingBag,
+        module: "inventory",
+      },
+      {
+        label: "Stock",
+        href: "/inventory/stock",
+        icon: BarChart2,
+        module: "inventory",
+      },
     ],
+  },
+  {
+    label: "Promociones",
+    href: "/promotions",
+    icon: Percent,
+    module: "promotions",
   },
   {
     label: "Caja",
     href: "/caja",
     icon: CreditCard,
     module: "caja",
-  },
-  {
-    label: "Inventario",
-    href: "/inventory",
-    icon: Package,
-    module: "inventory",
   },
   {
     label: "Trabajadores",
@@ -98,7 +118,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const { data: permissions, isLoading: isLoadingPermissions } =
     useMyPermissions();
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>(["/store"]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["/inventory"]);
 
   const canViewModule = (module: PermissionModule | "dashboard"): boolean => {
     if (module === "dashboard") return true;
@@ -117,7 +137,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   const visibleItems = navItems.filter((item) => {
     if (item.children) {
-      return item.children.some((child) => canViewModule(child.module));
+      return canViewModule(item.module);
     }
     return canViewModule(item.module);
   });
@@ -155,16 +175,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {visibleItems.map((item) => {
           const isExpanded = expandedItems.includes(item.href);
-          const isChildActive = item.children?.some(
-            (c) => location.pathname === c.href,
+          const isChildActive = item.children?.some((c) =>
+            location.pathname.startsWith(c.href),
           );
 
           if (item.children) {
-            const visibleChildren = item.children.filter((c) =>
-              canViewModule(c.module),
-            );
-            if (visibleChildren.length === 0) return null;
-
             return (
               <div key={item.href}>
                 <button
@@ -211,7 +226,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                       className="overflow-hidden"
                     >
                       <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
-                        {visibleChildren.map((child) => (
+                        {item.children.map((child) => (
                           <NavLink
                             key={child.href}
                             to={child.href}
@@ -225,6 +240,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                               )
                             }
                           >
+                            <child.icon className="h-3 w-3 shrink-0" />
                             {child.label}
                           </NavLink>
                         ))}
@@ -271,7 +287,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
       <Separator />
 
-      {/* Toggle button */}
+      {/* Toggle */}
       <div className="p-2 shrink-0">
         <Button
           variant="ghost"

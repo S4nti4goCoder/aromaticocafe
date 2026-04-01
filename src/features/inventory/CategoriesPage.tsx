@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
-import { CategoryFormModal } from "@/features/categories/CategoryFormModal";
+import { CategoryFormModal } from "@/features/inventory/CategoryFormModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import type { Category } from "@/types";
 
@@ -33,7 +33,7 @@ export function CategoriesPage() {
             Organiza los productos en categorías
           </p>
         </div>
-        <PermissionGuard module="categories" action="can_create">
+        <PermissionGuard module="inventory" action="can_create">
           <Button onClick={() => setModal({ open: true, category: null })}>
             <Plus className="mr-2 h-4 w-4" />
             Nueva categoría
@@ -109,7 +109,7 @@ export function CategoriesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <PermissionGuard module="categories" action="can_edit">
+                      <PermissionGuard module="inventory" action="can_edit">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -118,7 +118,7 @@ export function CategoriesPage() {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </PermissionGuard>
-                      <PermissionGuard module="categories" action="can_delete">
+                      <PermissionGuard module="inventory" action="can_delete">
                         <Button
                           variant="ghost"
                           size="icon"

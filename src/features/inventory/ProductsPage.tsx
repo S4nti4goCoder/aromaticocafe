@@ -7,9 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
-import { ProductFormModal } from "@/features/products/ProductFormModal";
+import { ProductFormModal } from "@/features/inventory/ProductFormModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import type { Product } from "@/types";
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+  }).format(amount);
 
 export function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -26,13 +33,6 @@ export function ProductsPage() {
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(price);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -42,7 +42,7 @@ export function ProductsPage() {
             Gestiona el catálogo de productos
           </p>
         </div>
-        <PermissionGuard module="products" action="can_create">
+        <PermissionGuard module="inventory" action="can_create">
           <Button onClick={() => setModal({ open: true, product: null })}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo producto
@@ -120,14 +120,12 @@ export function ProductsPage() {
                     {product.category?.name ?? "—"}
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    {formatPrice(product.price)}
+                    {formatCurrency(product.price)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {product.discount_percentage
                       ? `${product.discount_percentage}%`
-                      : product.discount_price
-                        ? formatPrice(product.discount_price)
-                        : "—"}
+                      : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <Badge
@@ -138,7 +136,7 @@ export function ProductsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <PermissionGuard module="products" action="can_edit">
+                      <PermissionGuard module="inventory" action="can_edit">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -147,7 +145,7 @@ export function ProductsPage() {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </PermissionGuard>
-                      <PermissionGuard module="products" action="can_delete">
+                      <PermissionGuard module="inventory" action="can_delete">
                         <Button
                           variant="ghost"
                           size="icon"

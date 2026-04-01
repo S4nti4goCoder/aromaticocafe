@@ -5,10 +5,9 @@ import { useProfile } from "@/hooks/useProfile";
 import type { PermissionsMap, PermissionModule } from "@/types";
 
 const MODULES: PermissionModule[] = [
-  "categories",
-  "products",
-  "caja",
   "inventory",
+  "promotions",
+  "caja",
   "workers",
   "accounting",
   "appearance",

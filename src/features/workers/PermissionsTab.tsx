@@ -16,10 +16,9 @@ interface PermissionsTabProps {
 }
 
 const moduleLabels: Record<PermissionModule, string> = {
-  categories: "Categorías",
-  products: "Productos",
-  caja: "Caja",
   inventory: "Inventario",
+  promotions: "Promociones",
+  caja: "Caja",
   workers: "Trabajadores",
   accounting: "Contabilidad",
   appearance: "Apariencia",
@@ -27,10 +26,9 @@ const moduleLabels: Record<PermissionModule, string> = {
 };
 
 const MODULES: PermissionModule[] = [
-  "categories",
-  "products",
-  "caja",
   "inventory",
+  "promotions",
+  "caja",
   "workers",
   "accounting",
   "appearance",

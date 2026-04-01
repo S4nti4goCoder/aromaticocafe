@@ -136,7 +136,7 @@ export function ProductFormModal({
             <Label htmlFor="description">Descripción</Label>
             <Textarea
               id="description"
-              placeholder="Descripción del producto..."
+              placeholder="Ej: Leche entera 200ml, café molido 25g..."
               rows={3}
               {...register("description")}
             />
@@ -160,30 +160,17 @@ export function ProductFormModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="discount_percentage">Descuento %</Label>
-              <Input
-                id="discount_percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="0"
-                {...register("discount_percentage")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="discount_price">Precio especial</Label>
-              <Input
-                id="discount_price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                {...register("discount_price")}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="discount_percentage">Descuento %</Label>
+            <Input
+              id="discount_percentage"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              placeholder="0"
+              {...register("discount_percentage")}
+            />
           </div>
 
           <div className="space-y-2">
@@ -226,7 +213,6 @@ export function ProductFormModal({
                 </div>
               )}
             />
-
             <Controller
               name="is_featured"
               control={control}
