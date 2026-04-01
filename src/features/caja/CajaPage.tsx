@@ -41,8 +41,9 @@ import {
 } from "@/hooks/useAccounting";
 import { useTodaySales, useCreateSale } from "@/hooks/useSales";
 import { useActivePromotions } from "@/hooks/usePromotions";
+import { ReceiptModal } from "@/features/caja/ReceiptModal";
 import { cn } from "@/lib/utils";
-import type { CartItem, PaymentMethod, Promotion } from "@/types";
+import type { CartItem, PaymentMethod, Promotion, Sale } from "@/types";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-CO", {
@@ -65,6 +66,9 @@ export function CajaPage() {
   const [openCashModal, setOpenCashModal] = useState(false);
   const [closeCashModal, setCloseCashModal] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState(false);
+  const [receiptModal, setReceiptModal] = useState(false);
+  const [lastSale, setLastSale] = useState<Sale | null>(null);
+  const [lastCartItems, setLastCartItems] = useState<CartItem[]>([]);
   const [openingAmount, setOpeningAmount] = useState("");
   const [closingAmount, setClosingAmount] = useState("");
 
@@ -200,8 +204,7 @@ export function CajaPage() {
   const totalAhorro = cart.reduce((sum, item) => {
     const product = products.find((p) => p.id === item.product_id);
     if (!product) return sum;
-    const precioOriginal = product.price * item.quantity;
-    return sum + (precioOriginal - item.subtotal);
+    return sum + (product.price * item.quantity - item.subtotal);
   }, 0);
 
   const todayTotal = todaySales.reduce((sum, s) => sum + s.total, 0);
@@ -225,17 +228,20 @@ export function CajaPage() {
 
   const handleCheckout = async () => {
     if (!cashRegister || cart.length === 0) return;
-    await createSale.mutateAsync({
+    const sale = await createSale.mutateAsync({
       cartItems: cart,
       cashRegisterId: cashRegister.id,
       paymentMethod,
       discount: discountAmount,
       notes: notes || undefined,
     });
+    setLastSale(sale);
+    setLastCartItems([...cart]);
     setCart([]);
     setDiscount("");
     setNotes("");
     setCheckoutModal(false);
+    setReceiptModal(true);
   };
 
   return (
@@ -406,7 +412,7 @@ export function CajaPage() {
             )}
           </div>
 
-          {/* Carrito — tirilla */}
+          {/* Carrito */}
           <div className="flex flex-col border rounded-lg bg-card overflow-hidden">
             <div className="p-3 border-b flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -451,7 +457,6 @@ export function CajaPage() {
                         exit={{ opacity: 0, x: -20 }}
                         className="rounded-lg border p-2 bg-background space-y-1"
                       >
-                        {/* Línea principal */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium line-clamp-1">
@@ -495,7 +500,6 @@ export function CajaPage() {
                           </div>
                         </div>
 
-                        {/* Precio original tachado y ahorro */}
                         {ahorro > 0 && (
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground line-through">
@@ -507,7 +511,6 @@ export function CajaPage() {
                           </div>
                         )}
 
-                        {/* Promoción */}
                         {promo && (
                           <div className="flex items-center gap-1">
                             <Badge className="text-xs px-1 py-0 bg-amber-500 h-4">
@@ -525,7 +528,6 @@ export function CajaPage() {
                           </div>
                         )}
 
-                        {/* IVA desglosado */}
                         <div className="flex justify-between items-center pt-1 border-t border-dashed">
                           <span className="text-xs text-muted-foreground">
                             IVA 8%: {formatCurrency(calcIVA(item.subtotal))}
@@ -541,7 +543,6 @@ export function CajaPage() {
               </div>
             )}
 
-            {/* Totales */}
             <div className="p-3 border-t space-y-1.5 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Base gravable</span>
@@ -685,22 +686,17 @@ export function CajaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal cobrar — tirilla */}
+      {/* Modal cobrar */}
       <Dialog open={checkoutModal} onOpenChange={setCheckoutModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Cobrar pedido</DialogTitle>
-            <DialogDescription>Resumen de la venta</DialogDescription>
+            <DialogDescription>Confirma el método de pago.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Tirilla */}
-            <div className="rounded-lg border p-3 space-y-2 text-sm font-mono bg-muted/30 max-h-64 overflow-y-auto">
-              <p className="text-center font-bold text-base">AROMÁTICO CAFÉ</p>
-              <p className="text-center text-xs text-muted-foreground">
-                {new Date().toLocaleString("es-CO")}
-              </p>
+            <div className="rounded-lg border p-3 space-y-1 text-sm font-mono bg-muted/30 max-h-48 overflow-y-auto">
+              <p className="text-center font-bold">AROMÁTICO CAFÉ</p>
               <div className="border-t border-dashed" />
-
               {cart.map((item) => {
                 const product = products.find((p) => p.id === item.product_id);
                 const promo = product ? getPromoForProduct(product) : undefined;
@@ -708,25 +704,20 @@ export function CajaPage() {
                   ? product.price * item.quantity
                   : item.subtotal;
                 const ahorro = precioOriginal - item.subtotal;
-
                 return (
                   <div key={item.product_id} className="space-y-0.5">
                     <div className="flex justify-between">
-                      <span className="flex-1 line-clamp-1">
+                      <span className="flex-1 truncate">
                         {item.quantity}x {item.product_name}
                       </span>
-                      <span className="shrink-0 ml-2">
+                      <span className="ml-1 shrink-0">
                         {formatCurrency(item.subtotal)}
                       </span>
                     </div>
                     {ahorro > 0 && (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="line-through">
-                          {formatCurrency(precioOriginal)}
-                        </span>
-                        <span className="text-green-600">
-                          -{formatCurrency(ahorro)}
-                        </span>
+                      <div className="flex justify-between text-xs text-green-600">
+                        <span>Descuento</span>
+                        <span>-{formatCurrency(ahorro)}</span>
                       </div>
                     )}
                     {promo && (
@@ -739,13 +730,9 @@ export function CajaPage() {
                             : promo.name}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      IVA 8%: {formatCurrency(calcIVA(item.subtotal))}
-                    </p>
                   </div>
                 );
               })}
-
               <div className="border-t border-dashed" />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Base gravable</span>
@@ -755,12 +742,6 @@ export function CajaPage() {
                 <span>IVA 8%</span>
                 <span>{formatCurrency(totalIVA)}</span>
               </div>
-              {totalAhorro > 0 && (
-                <div className="flex justify-between text-xs text-green-600">
-                  <span>Ahorro total</span>
-                  <span>-{formatCurrency(totalAhorro)}</span>
-                </div>
-              )}
               {discountAmount > 0 && (
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Descuento adicional</span>
@@ -768,13 +749,12 @@ export function CajaPage() {
                 </div>
               )}
               <div className="border-t border-dashed" />
-              <div className="flex justify-between font-bold text-base">
+              <div className="flex justify-between font-bold">
                 <span>TOTAL</span>
                 <span>{formatCurrency(total)}</span>
               </div>
             </div>
 
-            {/* Descuento adicional */}
             <div className="space-y-2">
               <Label>Descuento adicional</Label>
               <Input
@@ -787,7 +767,6 @@ export function CajaPage() {
               />
             </div>
 
-            {/* Método de pago */}
             <div className="space-y-2">
               <Label>Método de pago</Label>
               <Select
@@ -806,7 +785,6 @@ export function CajaPage() {
               </Select>
             </div>
 
-            {/* Notas */}
             <div className="space-y-2">
               <Label>Notas</Label>
               <Input
@@ -838,6 +816,15 @@ export function CajaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal recibo */}
+      <ReceiptModal
+        open={receiptModal}
+        onClose={() => setReceiptModal(false)}
+        sale={lastSale}
+        cartItems={lastCartItems}
+        promotions={activePromotions}
+      />
     </div>
   );
 }

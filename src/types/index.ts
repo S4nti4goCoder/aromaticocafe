@@ -267,6 +267,7 @@ export interface SaleItem {
 
 export interface Sale {
   id: string;
+  sale_number: number | null;
   cash_register_id: string | null;
   seller_id: string | null;
   total: number;
