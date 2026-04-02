@@ -108,11 +108,6 @@ export function ProductsPage() {
                       )}
                       <div>
                         <p className="font-medium">{product.name}</p>
-                        {product.is_featured && (
-                          <span className="text-xs text-amber-500">
-                            ⭐ Destacado
-                          </span>
-                        )}
                       </div>
                     </div>
                   </td>

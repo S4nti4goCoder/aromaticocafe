@@ -39,7 +39,6 @@ const defaultValues: ProductFormData = {
   discount_price: "",
   category_id: "",
   is_active: true,
-  is_featured: false,
   image_url: null,
 };
 
@@ -74,7 +73,6 @@ export function ProductFormModal({
         discount_price: product.discount_price?.toString() ?? "",
         category_id: product.category_id ?? "",
         is_active: product.is_active,
-        is_featured: product.is_featured,
         image_url: product.image_url,
       });
       setImageUrl(product.image_url);
@@ -209,22 +207,6 @@ export function ProductFormModal({
                   />
                   <Label htmlFor="is_active" className="cursor-pointer">
                     Producto activo
-                  </Label>
-                </div>
-              )}
-            />
-            <Controller
-              name="is_featured"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="is_featured"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                  <Label htmlFor="is_featured" className="cursor-pointer">
-                    Producto destacado
                   </Label>
                 </div>
               )}

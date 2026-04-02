@@ -5,6 +5,7 @@ import type { Product, ProductFormData } from "@/types";
 export function useProducts() {
   return useQuery({
     queryKey: ["products"],
+    staleTime: 0, // 👈 agrega esta línea
     queryFn: async (): Promise<Product[]> => {
       const { data, error } = await supabase
         .from("products")
@@ -35,7 +36,6 @@ export function useCreateProduct() {
           : null,
         category_id: formData.category_id || null,
         is_active: formData.is_active,
-        is_featured: formData.is_featured,
         image_url: formData.image_url,
       };
 
@@ -74,7 +74,6 @@ export function useUpdateProduct() {
           : null,
         category_id: formData.category_id || null,
         is_active: formData.is_active,
-        is_featured: formData.is_featured,
         image_url: formData.image_url,
       };
 

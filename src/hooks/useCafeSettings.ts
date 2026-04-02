@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { CafeSettings } from '@/types';
+import type { CafeSettings } from "@/types";
 
 const SETTINGS_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -9,6 +9,7 @@ export function useCafeSettings() {
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["cafe_settings"],
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cafe_settings")

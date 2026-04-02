@@ -66,7 +66,6 @@ export interface ProductFormData {
   discount_price: string;
   category_id: string;
   is_active: boolean;
-  is_featured: boolean;
   image_url: string | null;
 }
 

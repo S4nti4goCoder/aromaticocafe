@@ -444,6 +444,36 @@ export function AppearancePage() {
                     );
                   })}
                 </div>
+
+                {/* Botón guardar solo destacados */}
+                <div className="flex justify-end mt-6">
+                  <Button
+                    type="button"
+                    disabled={isSaving}
+                    onClick={async () => {
+                      try {
+                        await updateSettings({
+                          featured_product_ids: featuredIds,
+                        });
+                        toast.success("Productos destacados guardados");
+                      } catch {
+                        toast.error("Error al guardar los destacados");
+                      }
+                    }}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Guardar destacados
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
