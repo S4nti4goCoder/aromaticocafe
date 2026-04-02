@@ -41,6 +41,7 @@ import {
 } from "@/hooks/useAccounting";
 import { useTodaySales, useCreateSale } from "@/hooks/useSales";
 import { useActivePromotions } from "@/hooks/usePromotions";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { ReceiptModal } from "@/features/caja/ReceiptModal";
 import { cn } from "@/lib/utils";
 import type { CartItem, PaymentMethod, Promotion, Sale } from "@/types";
@@ -51,10 +52,6 @@ const formatCurrency = (amount: number) =>
     currency: "COP",
     minimumFractionDigits: 0,
   }).format(amount);
-
-const IVA_RATE = 0.08;
-const calcIVA = (amount: number) => amount - amount / (1 + IVA_RATE);
-const calcBase = (amount: number) => amount / (1 + IVA_RATE);
 
 export function CajaPage() {
   const [search, setSearch] = useState("");
@@ -77,9 +74,18 @@ export function CajaPage() {
   const { data: categories = [] } = useCategories();
   const { data: todaySales = [] } = useTodaySales(cashRegister?.id);
   const { data: activePromotions = [] } = useActivePromotions();
+  const { settings: systemSettings } = useSystemSettings();
   const openCash = useOpenCashRegister();
   const closeCash = useCloseCashRegister();
   const createSale = useCreateSale();
+
+  const IVA_RATE = systemSettings?.tax_enabled
+    ? (systemSettings.tax_percentage ?? 8) / 100
+    : 0;
+  const TAX_NAME = systemSettings?.tax_name ?? "IVA";
+  const TAX_PERCENT = systemSettings?.tax_percentage ?? 8;
+  const calcIVA = (amount: number) => amount - amount / (1 + IVA_RATE);
+  const calcBase = (amount: number) => amount / (1 + IVA_RATE);
 
   const isCashOpen = cashRegister?.status === "abierta";
 
@@ -528,14 +534,25 @@ export function CajaPage() {
                           </div>
                         )}
 
-                        <div className="flex justify-between items-center pt-1 border-t border-dashed">
-                          <span className="text-xs text-muted-foreground">
-                            IVA 8%: {formatCurrency(calcIVA(item.subtotal))}
-                          </span>
-                          <span className="text-xs font-bold">
-                            {formatCurrency(item.subtotal)}
-                          </span>
-                        </div>
+                        {systemSettings?.tax_enabled && (
+                          <div className="flex justify-between items-center pt-1 border-t border-dashed">
+                            <span className="text-xs text-muted-foreground">
+                              {TAX_NAME} {TAX_PERCENT}%:{" "}
+                              {formatCurrency(calcIVA(item.subtotal))}
+                            </span>
+                            <span className="text-xs font-bold">
+                              {formatCurrency(item.subtotal)}
+                            </span>
+                          </div>
+                        )}
+
+                        {!systemSettings?.tax_enabled && (
+                          <div className="flex justify-between items-center pt-1 border-t border-dashed">
+                            <span className="text-xs font-bold">
+                              {formatCurrency(item.subtotal)}
+                            </span>
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -544,14 +561,20 @@ export function CajaPage() {
             )}
 
             <div className="p-3 border-t space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Base gravable</span>
-                <span>{formatCurrency(totalBase)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>IVA 8%</span>
-                <span>{formatCurrency(totalIVA)}</span>
-              </div>
+              {systemSettings?.tax_enabled && (
+                <>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Base gravable</span>
+                    <span>{formatCurrency(totalBase)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>
+                      {TAX_NAME} {TAX_PERCENT}%
+                    </span>
+                    <span>{formatCurrency(totalIVA)}</span>
+                  </div>
+                </>
+              )}
               {totalAhorro > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Ahorro total</span>
@@ -695,7 +718,10 @@ export function CajaPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border p-3 space-y-1 text-sm font-mono bg-muted/30 max-h-48 overflow-y-auto">
-              <p className="text-center font-bold">AROMÁTICO CAFÉ</p>
+              <p className="text-center font-bold">
+                {systemSettings?.business_name?.toUpperCase() ??
+                  "AROMÁTICO CAFÉ"}
+              </p>
               <div className="border-t border-dashed" />
               {cart.map((item) => {
                 const product = products.find((p) => p.id === item.product_id);
@@ -734,14 +760,20 @@ export function CajaPage() {
                 );
               })}
               <div className="border-t border-dashed" />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Base gravable</span>
-                <span>{formatCurrency(totalBase)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>IVA 8%</span>
-                <span>{formatCurrency(totalIVA)}</span>
-              </div>
+              {systemSettings?.tax_enabled && (
+                <>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Base gravable</span>
+                    <span>{formatCurrency(totalBase)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      {TAX_NAME} {TAX_PERCENT}%
+                    </span>
+                    <span>{formatCurrency(totalIVA)}</span>
+                  </div>
+                </>
+              )}
               {discountAmount > 0 && (
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Descuento adicional</span>

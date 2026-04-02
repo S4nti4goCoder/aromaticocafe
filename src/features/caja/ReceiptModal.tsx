@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import type { Sale, CartItem, Promotion } from "@/types";
 
 interface ReceiptModalProps {
@@ -24,10 +25,6 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
-const IVA_RATE = 0.08;
-const calcIVA = (amount: number) => amount - amount / (1 + IVA_RATE);
-const calcBase = (amount: number) => amount / (1 + IVA_RATE);
-
 const paymentLabels: Record<string, string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
@@ -43,6 +40,16 @@ export function ReceiptModal({
   promotions,
 }: ReceiptModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { settings: systemSettings } = useSystemSettings();
+
+  const TAX_RATE = systemSettings?.tax_enabled
+    ? (systemSettings.tax_percentage ?? 8) / 100
+    : 0;
+  const TAX_NAME = systemSettings?.tax_name ?? "IVA";
+  const TAX_PERCENT = systemSettings?.tax_percentage ?? 8;
+
+  const calcIVA = (amount: number) => amount - amount / (1 + TAX_RATE);
+  const calcBase = (amount: number) => amount / (1 + TAX_RATE);
 
   if (!sale) return null;
 
@@ -62,10 +69,8 @@ export function ReceiptModal({
   const handlePrint = () => {
     const printContent = receiptRef.current;
     if (!printContent) return;
-
     const printWindow = window.open("", "_blank", "width=300,height=600");
     if (!printWindow) return;
-
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -73,13 +78,7 @@ export function ReceiptModal({
           <title>Recibo #${String(sale.sale_number ?? 0).padStart(5, "0")}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Courier New', monospace;
-              font-size: 12px;
-              width: 280px;
-              padding: 8px;
-              color: #000;
-            }
+            body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; padding: 8px; color: #000; }
           </style>
         </head>
         <body>${printContent.innerHTML}</body>
@@ -96,10 +95,8 @@ export function ReceiptModal({
   const handleDownloadPDF = () => {
     const printContent = receiptRef.current;
     if (!printContent) return;
-
     const printWindow = window.open("", "_blank", "width=300,height=600");
     if (!printWindow) return;
-
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -107,13 +104,7 @@ export function ReceiptModal({
           <title>Recibo #${String(sale.sale_number ?? 0).padStart(5, "0")}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Courier New', monospace;
-              font-size: 12px;
-              width: 280px;
-              padding: 8px;
-              color: #000;
-            }
+            body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; padding: 8px; color: #000; }
           </style>
         </head>
         <body>${printContent.innerHTML}</body>
@@ -134,15 +125,28 @@ export function ReceiptModal({
           <DialogTitle>Recibo de venta</DialogTitle>
         </DialogHeader>
 
-        {/* Tirilla */}
         <div
           ref={receiptRef}
           className="border rounded-lg p-4 font-mono text-xs space-y-1 bg-white text-black max-h-96 overflow-y-auto"
         >
-          <p className="text-center font-bold text-sm">AROMÁTICO CAFÉ</p>
-          <p className="text-center text-xs text-gray-500">
-            NIT: 000.000.000-0
+          <p className="text-center font-bold text-sm">
+            {systemSettings?.business_name?.toUpperCase() ?? "AROMÁTICO CAFÉ"}
           </p>
+          {systemSettings?.business_nit && (
+            <p className="text-center text-xs text-gray-500">
+              NIT: {systemSettings.business_nit}
+            </p>
+          )}
+          {systemSettings?.business_address && (
+            <p className="text-center text-xs text-gray-500">
+              {systemSettings.business_address}
+            </p>
+          )}
+          {systemSettings?.business_city && (
+            <p className="text-center text-xs text-gray-500">
+              {systemSettings.business_city}
+            </p>
+          )}
           <p className="text-center text-xs text-gray-500">
             DOCUMENTO EQUIVALENTE
           </p>
@@ -196,24 +200,35 @@ export function ReceiptModal({
                         : promo.name}
                   </p>
                 )}
-                <div className="flex justify-between text-gray-500">
-                  <span>IVA 8% incl.</span>
-                  <span>{formatCurrency(calcIVA(item.subtotal))}</span>
-                </div>
+                {systemSettings?.tax_enabled && (
+                  <div className="flex justify-between text-gray-500">
+                    <span>
+                      {TAX_NAME} {TAX_PERCENT}% incl.
+                    </span>
+                    <span>{formatCurrency(calcIVA(item.subtotal))}</span>
+                  </div>
+                )}
               </div>
             );
           })}
 
           <div className="border-t border-dashed border-gray-400 my-1" />
 
-          <div className="flex justify-between text-gray-600">
-            <span>Base gravable</span>
-            <span>{formatCurrency(totalBase)}</span>
-          </div>
-          <div className="flex justify-between text-gray-600">
-            <span>IVA 8%</span>
-            <span>{formatCurrency(totalIVA)}</span>
-          </div>
+          {systemSettings?.tax_enabled && (
+            <>
+              <div className="flex justify-between text-gray-600">
+                <span>Base gravable</span>
+                <span>{formatCurrency(totalBase)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>
+                  {TAX_NAME} {TAX_PERCENT}%
+                </span>
+                <span>{formatCurrency(totalIVA)}</span>
+              </div>
+            </>
+          )}
+
           {sale.discount > 0 && (
             <div className="flex justify-between text-gray-600">
               <span>Descuento adicional</span>
@@ -243,10 +258,11 @@ export function ReceiptModal({
 
           <div className="border-t border-dashed border-gray-400 my-1" />
           <p className="text-center text-gray-500">¡Gracias por su compra!</p>
-          <p className="text-center text-gray-500">Aromático Café</p>
+          <p className="text-center text-gray-500">
+            {systemSettings?.business_name ?? "Aromático Café"}
+          </p>
         </div>
 
-        {/* Acciones */}
         <div className="flex gap-2 mt-2">
           <Button variant="outline" className="flex-1" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
