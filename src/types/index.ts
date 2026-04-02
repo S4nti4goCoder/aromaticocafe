@@ -299,3 +299,24 @@ export interface InventoryMovement {
   registered_by: string | null;
   created_at: string;
 }
+
+export interface CafeSettings {
+  id: string;
+  cafe_name: string;
+  slogan: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  monday_friday: string | null;
+  saturday: string | null;
+  sunday: string | null;
+  featured_product_ids: string[];
+  updated_at: string;
+}

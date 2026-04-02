@@ -14,10 +14,14 @@ import { WorkersPage } from "@/features/workers/WorkersPage";
 import { AccountingPage } from "@/features/accounting/AccountingPage";
 import { AppearancePage } from "@/features/settings/AppearancePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import { LandingPage } from "@/features/landing/LandingPage";
 
 export function AppRouter() {
   return (
     <Routes>
+      {/* Ruta pública — sin auth */}
+      <Route path="/" element={<LandingPage />} />
+
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
@@ -52,8 +56,7 @@ export function AppRouter() {
         </Route>
       </Route>
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
