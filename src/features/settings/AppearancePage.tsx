@@ -16,10 +16,16 @@ import {
   MessageCircle,
   Link,
   AtSign,
+  Users,
+  Camera,
+  Quote,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -33,17 +39,33 @@ import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
 import type { CafeSettings, Product } from "@/types";
 
+type Testimonial = { name: string; comment: string; rating: number };
+
 type FormData = Omit<
   CafeSettings,
-  "id" | "updated_at" | "logo_url" | "cover_url" | "featured_product_ids"
+  | "id"
+  | "updated_at"
+  | "logo_url"
+  | "cover_url"
+  | "featured_product_ids"
+  | "gallery_urls"
+  | "testimonials"
+  | "show_promotions"
+  | "about_image_url"
 >;
 
 export function AppearancePage() {
   const { settings, isLoading, updateSettings, isSaving } = useCafeSettings();
   const { data: products } = useProducts();
+
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [aboutImageUrl, setAboutImageUrl] = useState<string | null>(null);
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
+  const [showPromotions, setShowPromotions] = useState(true);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
   const { register, handleSubmit, reset } = useForm<FormData>();
 
@@ -63,10 +85,20 @@ export function AppearancePage() {
         monday_friday: settings.monday_friday ?? "",
         saturday: settings.saturday ?? "",
         sunday: settings.sunday ?? "",
+        about_title: settings.about_title ?? "",
+        about_description: settings.about_description ?? "",
+        maps_embed_url: settings.maps_embed_url ?? "",
+        reservation_title: settings.reservation_title ?? "",
+        reservation_description: settings.reservation_description ?? "",
+        reservation_whatsapp: settings.reservation_whatsapp ?? "",
       });
       setFeaturedIds(settings.featured_product_ids ?? []);
       setLogoUrl(settings.logo_url ?? null);
       setCoverUrl(settings.cover_url ?? null);
+      setAboutImageUrl(settings.about_image_url ?? null);
+      setGalleryUrls(settings.gallery_urls ?? []);
+      setShowPromotions(settings.show_promotions ?? true);
+      setTestimonials(settings.testimonials ?? []);
     }
   }, [settings, reset]);
 
@@ -76,6 +108,10 @@ export function AppearancePage() {
         ...data,
         logo_url: logoUrl,
         cover_url: coverUrl,
+        about_image_url: aboutImageUrl,
+        gallery_urls: galleryUrls,
+        show_promotions: showPromotions,
+        testimonials,
         featured_product_ids: featuredIds,
       });
       toast.success("Configuración guardada correctamente");
@@ -91,6 +127,42 @@ export function AppearancePage() {
         : prev.length < 6
           ? [...prev, productId]
           : prev,
+    );
+  };
+
+  const addGalleryUrl = () => {
+    if (newGalleryUrl.trim() && galleryUrls.length < 8) {
+      setGalleryUrls((prev) => [...prev, newGalleryUrl.trim()]);
+      setNewGalleryUrl("");
+    }
+  };
+
+  const removeGalleryUrl = (index: number) => {
+    setGalleryUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const addTestimonial = () => {
+    setTestimonials((prev: Testimonial[]) => [
+      ...prev,
+      { name: "", comment: "", rating: 5 },
+    ]);
+  };
+
+  const updateTestimonial = (
+    index: number,
+    field: "name" | "comment" | "rating",
+    value: string | number,
+  ) => {
+    setTestimonials((prev: Testimonial[]) =>
+      prev.map((t: Testimonial, i: number) =>
+        i === index ? { ...t, [field]: value } : t,
+      ),
+    );
+  };
+
+  const removeTestimonial = (index: number) => {
+    setTestimonials((prev: Testimonial[]) =>
+      prev.filter((_: Testimonial, i: number) => i !== index),
     );
   };
 
@@ -119,26 +191,41 @@ export function AppearancePage() {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general" className="flex items-center gap-2">
-              <Store className="h-4 w-4" />
-              <span className="hidden sm:inline">General</span>
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
+            <TabsTrigger value="general" className="flex items-center gap-1.5">
+              <Store className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">General</span>
             </TabsTrigger>
-            <TabsTrigger value="media" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
-              <span className="hidden sm:inline">Imágenes</span>
+            <TabsTrigger value="media" className="flex items-center gap-1.5">
+              <Image className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Imágenes</span>
             </TabsTrigger>
-            <TabsTrigger value="colors" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Colores</span>
+            <TabsTrigger value="colors" className="flex items-center gap-1.5">
+              <Palette className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Colores</span>
             </TabsTrigger>
-            <TabsTrigger value="contact" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline">Contacto</span>
+            <TabsTrigger value="contact" className="flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Contacto</span>
             </TabsTrigger>
-            <TabsTrigger value="featured" className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              <span className="hidden sm:inline">Destacados</span>
+            <TabsTrigger value="about" className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Nosotros</span>
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="flex items-center gap-1.5">
+              <Camera className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Galería</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="testimonials"
+              className="flex items-center gap-1.5"
+            >
+              <Quote className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Reseñas</span>
+            </TabsTrigger>
+            <TabsTrigger value="featured" className="flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Destacados</span>
             </TabsTrigger>
           </TabsList>
 
@@ -181,7 +268,7 @@ export function AppearancePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Image className="h-5 w-5" />
-                  Imágenes
+                  Imágenes Principales
                 </CardTitle>
                 <CardDescription>
                   Logo y foto de portada de la landing page
@@ -190,12 +277,12 @@ export function AppearancePage() {
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Logo del café</Label>
-                  <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed rounded-lg">
+                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
                     {logoUrl && (
                       <img
                         src={logoUrl}
                         alt="Logo"
-                        className="h-24 w-24 object-cover rounded-lg"
+                        className="h-24 w-24 object-cover rounded-lg mx-auto"
                       />
                     )}
                     <Input
@@ -210,7 +297,7 @@ export function AppearancePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Imagen de portada</Label>
-                  <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed rounded-lg">
+                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
                     {coverUrl && (
                       <img
                         src={coverUrl}
@@ -240,9 +327,6 @@ export function AppearancePage() {
                   <Palette className="h-5 w-5" />
                   Colores del Tema
                 </CardTitle>
-                <CardDescription>
-                  Colores principales que se usarán en la landing page
-                </CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -255,7 +339,7 @@ export function AppearancePage() {
                       {...register("primary_color")}
                     />
                     <Input
-                      placeholder="#7c3aed"
+                      placeholder="#a0522d"
                       className="font-mono"
                       {...register("primary_color")}
                     />
@@ -271,7 +355,7 @@ export function AppearancePage() {
                       {...register("secondary_color")}
                     />
                     <Input
-                      placeholder="#f59e0b"
+                      placeholder="#c8864a"
                       className="font-mono"
                       {...register("secondary_color")}
                     />
@@ -383,7 +467,264 @@ export function AppearancePage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Mapa de Ubicación
+                  </CardTitle>
+                  <CardDescription>
+                    URL de embed de Google Maps para mostrar en la landing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Input
+                    placeholder="https://www.google.com/maps/embed?pb=..."
+                    {...register("maps_embed_url")}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    En Google Maps → Compartir → Incorporar un mapa → copia la
+                    URL del src
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" />
+                    Banner de Reservas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Título del banner</Label>
+                    <Input
+                      placeholder="¿Quieres reservar una mesa?"
+                      {...register("reservation_title")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descripción</Label>
+                    <Input
+                      placeholder="Escríbenos por WhatsApp..."
+                      {...register("reservation_description")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp para reservas</Label>
+                    <Input
+                      placeholder="573110000000"
+                      {...register("reservation_whatsapp")}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+          </TabsContent>
+
+          {/* SOBRE NOSOTROS */}
+          <TabsContent value="about">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Sobre Nosotros
+                </CardTitle>
+                <CardDescription>
+                  Historia y descripción del café que aparecerá en la landing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Título</Label>
+                  <Input
+                    placeholder="Nuestra Historia"
+                    {...register("about_title")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descripción</Label>
+                  <Textarea
+                    placeholder="Contanos la historia de tu café..."
+                    rows={5}
+                    {...register("about_description")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Imagen de la sección</Label>
+                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
+                    {aboutImageUrl && (
+                      <img
+                        src={aboutImageUrl}
+                        alt="Sobre nosotros"
+                        className="h-32 w-full object-cover rounded-lg"
+                      />
+                    )}
+                    <Input
+                      placeholder="URL de la imagen"
+                      value={aboutImageUrl ?? ""}
+                      onChange={(e) => setAboutImageUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* GALERÍA */}
+          <TabsContent value="gallery">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="h-5 w-5" />
+                  Galería de Fotos
+                </CardTitle>
+                <CardDescription>
+                  Agrega hasta 8 fotos del local ({galleryUrls.length}/8)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="URL de la foto"
+                    value={newGalleryUrl}
+                    onChange={(e) => setNewGalleryUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addGalleryUrl();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addGalleryUrl}
+                    disabled={galleryUrls.length >= 8}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {galleryUrls.map((url, index) => (
+                    <div
+                      key={index}
+                      className="relative group rounded-lg overflow-hidden"
+                    >
+                      <img
+                        src={url}
+                        alt={`Foto ${index + 1}`}
+                        className="h-24 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryUrl(index)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TESTIMONIOS */}
+          <TabsContent value="testimonials">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Quote className="h-5 w-5" />
+                  Reseñas de Clientes
+                </CardTitle>
+                <CardDescription>
+                  Agrega testimonios de clientes satisfechos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {testimonials.length} reseña(s) agregada(s)
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTestimonial}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar reseña
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {testimonials.map((t, index) => (
+                    <div
+                      key={index}
+                      className="p-4 rounded-lg border space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">
+                          Reseña #{index + 1}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => removeTestimonial(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nombre del cliente</Label>
+                          <Input
+                            placeholder="María García"
+                            value={t.name}
+                            onChange={(e) =>
+                              updateTestimonial(index, "name", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Calificación (1-5)</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={t.rating}
+                            onChange={(e) =>
+                              updateTestimonial(
+                                index,
+                                "rating",
+                                parseInt(e.target.value),
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Comentario</Label>
+                        <Textarea
+                          placeholder="El mejor café que he probado..."
+                          rows={2}
+                          value={t.comment}
+                          onChange={(e) =>
+                            updateTestimonial(index, "comment", e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* PRODUCTOS DESTACADOS */}
@@ -395,11 +736,28 @@ export function AppearancePage() {
                   Productos Destacados
                 </CardTitle>
                 <CardDescription>
-                  Selecciona hasta 6 productos para mostrar en la landing page (
-                  {featuredIds.length}/6 seleccionados)
+                  Selecciona hasta 6 productos ({featuredIds.length}/6
+                  seleccionados)
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="flex items-center justify-between mb-4 p-3 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium">
+                      Mostrar sección de promociones
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Muestra las promociones activas en la landing page
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showPromotions}
+                    onChange={(e) => setShowPromotions(e.target.checked)}
+                    className="h-4 w-4 cursor-pointer"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {activeProducts.map((product) => {
                     const isSelected = featuredIds.includes(product.id);
@@ -445,7 +803,6 @@ export function AppearancePage() {
                   })}
                 </div>
 
-                {/* Botón guardar solo destacados */}
                 <div className="flex justify-end mt-6">
                   <Button
                     type="button"
@@ -454,8 +811,9 @@ export function AppearancePage() {
                       try {
                         await updateSettings({
                           featured_product_ids: featuredIds,
+                          show_promotions: showPromotions,
                         });
-                        toast.success("Productos destacados guardados");
+                        toast.success("Destacados guardados correctamente");
                       } catch {
                         toast.error("Error al guardar los destacados");
                       }
@@ -479,7 +837,7 @@ export function AppearancePage() {
           </TabsContent>
         </Tabs>
 
-        {/* BOTÓN GUARDAR */}
+        {/* BOTÓN GUARDAR GENERAL */}
         <div className="flex justify-end mt-6">
           <Button type="submit" disabled={isSaving} size="lg">
             {isSaving ? (

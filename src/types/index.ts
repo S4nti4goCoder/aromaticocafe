@@ -317,5 +317,19 @@ export interface CafeSettings {
   saturday: string | null;
   sunday: string | null;
   featured_product_ids: string[];
+  about_title: string | null;
+  about_description: string | null;
+  about_image_url: string | null;
+  gallery_urls: string[];
+  show_promotions: boolean;
+  testimonials: {
+    name: string;
+    comment: string;
+    rating: number;
+  }[];
+  maps_embed_url: string | null;
+  reservation_title: string | null;
+  reservation_description: string | null;
+  reservation_whatsapp: string | null;
   updated_at: string;
 }
