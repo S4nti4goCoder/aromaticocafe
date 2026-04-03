@@ -168,14 +168,6 @@ export function AppearancePage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   const activeProducts: Product[] = (products ?? []).filter((p) => p.is_active);
 
   const {
@@ -187,6 +179,14 @@ export function AppearancePage() {
     handlePageChange: handleFeaturedPageChange,
     handleItemsPerPageChange: handleFeaturedItemsPerPageChange,
   } = usePagination(activeProducts);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
