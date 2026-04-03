@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Search, Pencil, Trash2, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
 import { CategoryFormModal } from "@/features/inventory/CategoryFormModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
+import { Pagination } from "@/components/shared/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { Category } from "@/types";
 
 export function CategoriesPage() {
@@ -23,6 +25,22 @@ export function CategoriesPage() {
   const filtered = categories.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    paginatedItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    reset,
+  } = usePagination(filtered);
+
+  // Reset página al buscar
+  useEffect(() => {
+    reset();
+  }, [search]);
 
   return (
     <div className="space-y-6">
@@ -63,78 +81,91 @@ export function CategoriesPage() {
           <p>No hay categorías</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Imagen</th>
-                <th className="text-left px-4 py-3 font-medium">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium">Descripción</th>
-                <th className="text-left px-4 py-3 font-medium">Estado</th>
-                <th className="text-right px-4 py-3 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((category, index) => (
-                <motion.tr
-                  key={category.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="border-t hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    {category.image_url ? (
-                      <img
-                        src={category.image_url}
-                        alt={category.name}
-                        className="h-10 w-10 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                        <Tag className="h-4 w-4 text-muted-foreground/40" />
+        <>
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium">Imagen</th>
+                  <th className="text-left px-4 py-3 font-medium">Nombre</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Descripción
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium">Estado</th>
+                  <th className="text-right px-4 py-3 font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.map((category, index) => (
+                  <motion.tr
+                    key={category.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="border-t hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      {category.image_url ? (
+                        <img
+                          src={category.image_url}
+                          alt={category.name}
+                          className="h-10 w-10 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                          <Tag className="h-4 w-4 text-muted-foreground/40" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{category.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {category.description ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant={category.is_active ? "default" : "secondary"}
+                      >
+                        {category.is_active ? "Activa" : "Inactiva"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <PermissionGuard module="inventory" action="can_edit">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setModal({ open: true, category })}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard module="inventory" action="can_delete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deleteCategory.mutate(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-medium">{category.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {category.description ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant={category.is_active ? "default" : "secondary"}
-                    >
-                      {category.is_active ? "Activa" : "Inactiva"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <PermissionGuard module="inventory" action="can_edit">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setModal({ open: true, category })}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </PermissionGuard>
-                      <PermissionGuard module="inventory" action="can_delete">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => deleteCategory.mutate(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </PermissionGuard>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        </>
       )}
 
       <CategoryFormModal

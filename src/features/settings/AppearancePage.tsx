@@ -37,6 +37,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
+import { Pagination } from "@/components/shared/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { CafeSettings, Product } from "@/types";
 
 type Testimonial = { name: string; comment: string; rating: number };
@@ -175,6 +177,16 @@ export function AppearancePage() {
   }
 
   const activeProducts: Product[] = (products ?? []).filter((p) => p.is_active);
+
+  const {
+    currentPage: featuredPage,
+    totalPages: featuredTotalPages,
+    totalItems: featuredTotalItems,
+    itemsPerPage: featuredItemsPerPage,
+    paginatedItems: paginatedProducts,
+    handlePageChange: handleFeaturedPageChange,
+    handleItemsPerPageChange: handleFeaturedItemsPerPageChange,
+  } = usePagination(activeProducts);
 
   return (
     <motion.div
@@ -607,7 +619,6 @@ export function AppearancePage() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {galleryUrls.map((url, index) => (
                     <div
@@ -660,7 +671,6 @@ export function AppearancePage() {
                     Agregar reseña
                   </Button>
                 </div>
-
                 <div className="space-y-4">
                   {testimonials.map((t, index) => (
                     <div
@@ -759,7 +769,7 @@ export function AppearancePage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {activeProducts.map((product) => {
+                  {paginatedProducts.map((product) => {
                     const isSelected = featuredIds.includes(product.id);
                     return (
                       <motion.div
@@ -803,35 +813,14 @@ export function AppearancePage() {
                   })}
                 </div>
 
-                <div className="flex justify-end mt-6">
-                  <Button
-                    type="button"
-                    disabled={isSaving}
-                    onClick={async () => {
-                      try {
-                        await updateSettings({
-                          featured_product_ids: featuredIds,
-                          show_promotions: showPromotions,
-                        });
-                        toast.success("Destacados guardados correctamente");
-                      } catch {
-                        toast.error("Error al guardar los destacados");
-                      }
-                    }}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar destacados
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Pagination
+                  currentPage={featuredPage}
+                  totalPages={featuredTotalPages}
+                  totalItems={featuredTotalItems}
+                  itemsPerPage={featuredItemsPerPage}
+                  onPageChange={handleFeaturedPageChange}
+                  onItemsPerPageChange={handleFeaturedItemsPerPageChange}
+                />
               </CardContent>
             </Card>
           </TabsContent>

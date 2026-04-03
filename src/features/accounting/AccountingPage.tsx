@@ -38,6 +38,8 @@ import {
 } from "@/hooks/useAccounting";
 import { TransactionFormModal } from "@/features/accounting/TransactionFormModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
+import { Pagination } from "@/components/shared/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { TransactionType } from "@/types";
 
 const formatCurrency = (amount: number) =>
@@ -76,6 +78,16 @@ export function AccountingPage() {
   const openCash = useOpenCashRegister();
   const closeCash = useCloseCashRegister();
   const deleteTransaction = useDeleteTransaction();
+
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    paginatedItems: paginatedTransactions,
+    handlePageChange,
+    handleItemsPerPageChange,
+  } = usePagination(transactions);
 
   const isCashOpen = cashRegister?.status === "abierta";
 
@@ -218,7 +230,6 @@ export function AccountingPage() {
             </motion.div>
           </div>
 
-          {/* Gráfico ingresos vs egresos */}
           {summary && summary.chartData.length > 0 && (
             <div className="rounded-lg border bg-card p-4 space-y-4">
               <h3 className="font-semibold">Ingresos vs Egresos del mes</h3>
@@ -318,94 +329,111 @@ export function AccountingPage() {
               <p>No hay transacciones registradas</p>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium">Tipo</th>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Categoría
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Descripción
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">Método</th>
-                    <th className="text-left px-4 py-3 font-medium">Fecha</th>
-                    <th className="text-right px-4 py-3 font-medium">Monto</th>
-                    <th className="text-right px-4 py-3 font-medium">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((transaction, index) => (
-                    <motion.tr
-                      key={transaction.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.02 }}
-                      className="border-t hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant={
-                            transaction.type === "ingreso"
-                              ? "default"
-                              : "destructive"
-                          }
-                          className={
-                            transaction.type === "ingreso" ? "bg-green-600" : ""
-                          }
-                        >
-                          {transaction.type === "ingreso"
-                            ? "Ingreso"
-                            : "Egreso"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">{transaction.category}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {transaction.description ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 capitalize text-muted-foreground">
-                        {transaction.payment_method}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {formatDateTime(transaction.created_at)}
-                      </td>
-                      <td
-                        className={`px-4 py-3 text-right font-semibold ${
-                          transaction.type === "ingreso"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
-                        }`}
+            <>
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Categoría
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Descripción
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Método
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                      <th className="text-right px-4 py-3 font-medium">
+                        Monto
+                      </th>
+                      <th className="text-right px-4 py-3 font-medium">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedTransactions.map((transaction, index) => (
+                      <motion.tr
+                        key={transaction.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.02 }}
+                        className="border-t hover:bg-muted/30 transition-colors"
                       >
-                        {transaction.type === "ingreso" ? "+" : "-"}
-                        {formatCurrency(Number(transaction.amount))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <PermissionGuard
-                          module="accounting"
-                          action="can_delete"
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={
+                              transaction.type === "ingreso"
+                                ? "default"
+                                : "destructive"
+                            }
+                            className={
+                              transaction.type === "ingreso"
+                                ? "bg-green-600"
+                                : ""
+                            }
+                          >
+                            {transaction.type === "ingreso"
+                              ? "Ingreso"
+                              : "Egreso"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">{transaction.category}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {transaction.description ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 capitalize text-muted-foreground">
+                          {transaction.payment_method}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {formatDateTime(transaction.created_at)}
+                        </td>
+                        <td
+                          className={`px-4 py-3 text-right font-semibold ${
+                            transaction.type === "ingreso"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}
                         >
-                          <div className="flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() =>
-                                deleteTransaction.mutate(transaction.id)
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </PermissionGuard>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          {transaction.type === "ingreso" ? "+" : "-"}
+                          {formatCurrency(Number(transaction.amount))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <PermissionGuard
+                            module="accounting"
+                            action="can_delete"
+                          >
+                            <div className="flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() =>
+                                  deleteTransaction.mutate(transaction.id)
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </PermissionGuard>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+              />
+            </>
           )}
         </TabsContent>
 
@@ -427,7 +455,6 @@ export function AccountingPage() {
             </Button>
           </div>
 
-          {/* Resumen nómina */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">
@@ -505,7 +532,6 @@ export function AccountingPage() {
 
                   {expandedWorker === item.worker.id && (
                     <div className="border-t p-4 space-y-3 text-sm">
-                      {/* Vista empleado */}
                       <div className="space-y-1">
                         <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">
                           Liquidación empleado
@@ -552,7 +578,6 @@ export function AccountingPage() {
                         </div>
                       </div>
 
-                      {/* Costo empleador */}
                       <div className="space-y-1 bg-muted/30 rounded-lg p-3">
                         <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">
                           Aportes empleador (adicionales)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -18,6 +18,8 @@ import { useProductStock, useInventoryMovements } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
 import { StockMovementModal } from "@/features/inventory/StockMovementModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
+import { Pagination } from "@/components/shared/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 export function StockPage() {
   const [search, setSearch] = useState("");
@@ -35,6 +37,31 @@ export function StockPage() {
   const filtered = productStock.filter((p) =>
     p.product_name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const {
+    currentPage: stockPage,
+    totalPages: stockTotalPages,
+    totalItems: stockTotalItems,
+    itemsPerPage: stockItemsPerPage,
+    paginatedItems: paginatedStock,
+    handlePageChange: handleStockPageChange,
+    handleItemsPerPageChange: handleStockItemsPerPageChange,
+    reset: resetStock,
+  } = usePagination(filtered);
+
+  const {
+    currentPage: movPage,
+    totalPages: movTotalPages,
+    totalItems: movTotalItems,
+    itemsPerPage: movItemsPerPage,
+    paginatedItems: paginatedMovements,
+    handlePageChange: handleMovPageChange,
+    handleItemsPerPageChange: handleMovItemsPerPageChange,
+  } = usePagination(movements);
+
+  useEffect(() => {
+    resetStock();
+  }, [search]);
 
   const movementTypeConfig = {
     entrada: {
@@ -111,6 +138,7 @@ export function StockPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* PRODUCTOS */}
         <TabsContent value="products" className="mt-4 space-y-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -134,108 +162,121 @@ export function StockPage() {
               <p>No hay productos en inventario</p>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Producto
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Categoría
-                    </th>
-                    <th className="text-center px-4 py-3 font-medium">
-                      Stock actual
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">Estado</th>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Último movimiento
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((item, index) => {
-                    const status = getStockStatus(item.stock);
-                    return (
-                      <motion.tr
-                        key={item.product_id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-t hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            {item.image_url ? (
-                              <img
-                                src={item.image_url}
-                                alt={item.product_name}
-                                className="h-8 w-8 rounded object-cover"
-                              />
-                            ) : (
-                              <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                                <Package className="h-3 w-3 text-muted-foreground/40" />
-                              </div>
-                            )}
-                            <span className="font-medium">
-                              {item.product_name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {item.category_name ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span
-                            className={`font-bold text-lg ${
-                              status === "agotado"
-                                ? "text-red-600"
-                                : status === "bajo"
-                                  ? "text-amber-600"
-                                  : ""
-                            }`}
-                          >
-                            {item.stock}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {status === "agotado" ? (
-                            <Badge variant="destructive">Agotado</Badge>
-                          ) : status === "bajo" ? (
-                            <Badge
-                              variant="outline"
-                              className="border-amber-500 text-amber-600"
+            <>
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Producto
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Categoría
+                      </th>
+                      <th className="text-center px-4 py-3 font-medium">
+                        Stock actual
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Estado
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Último movimiento
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedStock.map((item, index) => {
+                      const status = getStockStatus(item.stock);
+                      return (
+                        <motion.tr
+                          key={item.product_id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="border-t hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {item.image_url ? (
+                                <img
+                                  src={item.image_url}
+                                  alt={item.product_name}
+                                  className="h-8 w-8 rounded object-cover"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
+                                  <Package className="h-3 w-3 text-muted-foreground/40" />
+                                </div>
+                              )}
+                              <span className="font-medium">
+                                {item.product_name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {item.category_name ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`font-bold text-lg ${
+                                status === "agotado"
+                                  ? "text-red-600"
+                                  : status === "bajo"
+                                    ? "text-amber-600"
+                                    : ""
+                              }`}
                             >
-                              Stock bajo
-                            </Badge>
-                          ) : (
-                            <Badge variant="default" className="bg-green-600">
-                              OK
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">
-                          {item.last_movement
-                            ? new Date(item.last_movement).toLocaleString(
-                                "es-CO",
-                                {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )
-                            : "Sin movimientos"}
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              {item.stock}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {status === "agotado" ? (
+                              <Badge variant="destructive">Agotado</Badge>
+                            ) : status === "bajo" ? (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-500 text-amber-600"
+                              >
+                                Stock bajo
+                              </Badge>
+                            ) : (
+                              <Badge variant="default" className="bg-green-600">
+                                OK
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">
+                            {item.last_movement
+                              ? new Date(item.last_movement).toLocaleString(
+                                  "es-CO",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )
+                              : "Sin movimientos"}
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={stockPage}
+                totalPages={stockTotalPages}
+                totalItems={stockTotalItems}
+                itemsPerPage={stockItemsPerPage}
+                onPageChange={handleStockPageChange}
+                onItemsPerPageChange={handleStockItemsPerPageChange}
+              />
+            </>
           )}
         </TabsContent>
 
+        {/* MOVIMIENTOS */}
         <TabsContent value="movements" className="mt-4">
           {loadingMovements ? (
             <div className="space-y-2">
@@ -249,86 +290,97 @@ export function StockPage() {
               <p>No hay movimientos registrados</p>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium">Tipo</th>
-                    <th className="text-left px-4 py-3 font-medium">
-                      Producto
-                    </th>
-                    <th className="text-center px-4 py-3 font-medium">
-                      Cantidad
-                    </th>
-                    <th className="text-center px-4 py-3 font-medium">
-                      Stock anterior
-                    </th>
-                    <th className="text-center px-4 py-3 font-medium">
-                      Stock nuevo
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium">Motivo</th>
-                    <th className="text-left px-4 py-3 font-medium">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {movements.map((movement, index) => {
-                    const config = movementTypeConfig[movement.type];
-                    const Icon = config.icon;
-                    const product = products.find(
-                      (p) => p.id === movement.product_id,
-                    );
-
-                    return (
-                      <motion.tr
-                        key={movement.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-t hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <div
-                            className={`flex items-center gap-1 ${config.color}`}
-                          >
-                            <Icon className="h-3 w-3" />
-                            <span className="text-xs font-medium">
-                              {config.label}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium">
-                          {product?.name ?? "Producto eliminado"}
-                        </td>
-                        <td className="px-4 py-3 text-center font-bold">
-                          {movement.type === "salida" ? "-" : "+"}
-                          {movement.quantity}
-                        </td>
-                        <td className="px-4 py-3 text-center text-muted-foreground">
-                          {movement.previous_stock}
-                        </td>
-                        <td className="px-4 py-3 text-center font-medium">
-                          {movement.new_stock}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {movement.reason ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">
-                          {new Date(movement.created_at).toLocaleString(
-                            "es-CO",
-                            {
-                              day: "2-digit",
-                              month: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Producto
+                      </th>
+                      <th className="text-center px-4 py-3 font-medium">
+                        Cantidad
+                      </th>
+                      <th className="text-center px-4 py-3 font-medium">
+                        Stock anterior
+                      </th>
+                      <th className="text-center px-4 py-3 font-medium">
+                        Stock nuevo
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">
+                        Motivo
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedMovements.map((movement, index) => {
+                      const config = movementTypeConfig[movement.type];
+                      const Icon = config.icon;
+                      const product = products.find(
+                        (p) => p.id === movement.product_id,
+                      );
+                      return (
+                        <motion.tr
+                          key={movement.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="border-t hover:bg-muted/30 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div
+                              className={`flex items-center gap-1 ${config.color}`}
+                            >
+                              <Icon className="h-3 w-3" />
+                              <span className="text-xs font-medium">
+                                {config.label}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium">
+                            {product?.name ?? "Producto eliminado"}
+                          </td>
+                          <td className="px-4 py-3 text-center font-bold">
+                            {movement.type === "salida" ? "-" : "+"}
+                            {movement.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-center text-muted-foreground">
+                            {movement.previous_stock}
+                          </td>
+                          <td className="px-4 py-3 text-center font-medium">
+                            {movement.new_stock}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {movement.reason ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">
+                            {new Date(movement.created_at).toLocaleString(
+                              "es-CO",
+                              {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={movPage}
+                totalPages={movTotalPages}
+                totalItems={movTotalItems}
+                itemsPerPage={movItemsPerPage}
+                onPageChange={handleMovPageChange}
+                onItemsPerPageChange={handleMovItemsPerPageChange}
+              />
+            </>
           )}
         </TabsContent>
       </Tabs>

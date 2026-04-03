@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Search, Pencil, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { ProductFormModal } from "@/features/inventory/ProductFormModal";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
+import { Pagination } from "@/components/shared/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 import type { Product } from "@/types";
 
 const formatCurrency = (amount: number) =>
@@ -32,6 +34,21 @@ export function ProductsPage() {
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    paginatedItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    reset,
+  } = usePagination(filtered);
+
+  useEffect(() => {
+    reset();
+  }, [search]);
 
   return (
     <div className="space-y-6">
@@ -72,91 +89,102 @@ export function ProductsPage() {
           <p>No hay productos</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Producto</th>
-                <th className="text-left px-4 py-3 font-medium">Categoría</th>
-                <th className="text-left px-4 py-3 font-medium">Precio</th>
-                <th className="text-left px-4 py-3 font-medium">Descuento</th>
-                <th className="text-left px-4 py-3 font-medium">Estado</th>
-                <th className="text-right px-4 py-3 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((product, index) => (
-                <motion.tr
-                  key={product.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="border-t hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-10 w-10 rounded-md object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
-                          <ShoppingBag className="h-4 w-4 text-muted-foreground/40" />
+        <>
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium">Producto</th>
+                  <th className="text-left px-4 py-3 font-medium">Categoría</th>
+                  <th className="text-left px-4 py-3 font-medium">Precio</th>
+                  <th className="text-left px-4 py-3 font-medium">Descuento</th>
+                  <th className="text-left px-4 py-3 font-medium">Estado</th>
+                  <th className="text-right px-4 py-3 font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.map((product, index) => (
+                  <motion.tr
+                    key={product.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="border-t hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-10 w-10 rounded-md object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                            <ShoppingBag className="h-4 w-4 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{product.name}</p>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{product.name}</p>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {product.category?.name ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    {formatCurrency(product.price)}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {product.discount_percentage
-                      ? `${product.discount_percentage}%`
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant={product.is_active ? "default" : "secondary"}
-                    >
-                      {product.is_active ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <PermissionGuard module="inventory" action="can_edit">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setModal({ open: true, product })}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </PermissionGuard>
-                      <PermissionGuard module="inventory" action="can_delete">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => deleteProduct.mutate(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </PermissionGuard>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {product.category?.name ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {formatCurrency(product.price)}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {product.discount_percentage
+                        ? `${product.discount_percentage}%`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant={product.is_active ? "default" : "secondary"}
+                      >
+                        {product.is_active ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <PermissionGuard module="inventory" action="can_edit">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setModal({ open: true, product })}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard module="inventory" action="can_delete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deleteProduct.mutate(product.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        </>
       )}
 
       <ProductFormModal
