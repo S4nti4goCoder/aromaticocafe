@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { Sale, CartItem, PaymentMethod } from "@/types";
 
@@ -110,6 +111,10 @@ export function useCreateSale() {
       queryClient.invalidateQueries({ queryKey: ["cash_register"] });
       queryClient.invalidateQueries({ queryKey: ["product_stock"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_movements"] });
+      toast.success("Venta registrada correctamente");
+    },
+    onError: () => {
+      toast.error("Error al registrar la venta");
     },
   });
 }
@@ -127,6 +132,10 @@ export function useDeleteSale() {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["product_stock"] });
+      toast.success("Venta eliminada");
+    },
+    onError: () => {
+      toast.error("Error al eliminar la venta");
     },
   });
 }

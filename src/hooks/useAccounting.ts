@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { CashRegister, Transaction, TransactionFormData } from "@/types";
 
@@ -68,6 +69,10 @@ export function useOpenCashRegister() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cash_register"] });
+      toast.success("Caja abierta correctamente");
+    },
+    onError: () => {
+      toast.error("Error al abrir la caja");
     },
   });
 }
@@ -107,6 +112,10 @@ export function useCloseCashRegister() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cash_register"] });
+      toast.success("Caja cerrada correctamente");
+    },
+    onError: () => {
+      toast.error("Error al cerrar la caja");
     },
   });
 }
@@ -170,8 +179,14 @@ export function useCreateTransaction() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const label =
+        variables.formData.type === "ingreso" ? "Ingreso" : "Egreso";
+      toast.success(`${label} registrado correctamente`);
+    },
+    onError: () => {
+      toast.error("Error al registrar la transacción");
     },
   });
 }
@@ -190,6 +205,10 @@ export function useDeleteTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transacción eliminada");
+    },
+    onError: () => {
+      toast.error("Error al eliminar la transacción");
     },
   });
 }

@@ -1,10 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type {
-  InventoryMovement,
-  InventoryMovementType,
-  ProductStock,
-} from "@/types";
+import type { ProductStock, InventoryMovementType } from "@/types";
 
 export function useProductStock() {
   return useQuery({
@@ -14,28 +11,6 @@ export function useProductStock() {
         .from("product_stock")
         .select("*")
         .order("product_name", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-}
-
-export function useInventoryMovements(productId?: string) {
-  return useQuery({
-    queryKey: ["inventory_movements", productId],
-    queryFn: async (): Promise<InventoryMovement[]> => {
-      let query = supabase
-        .from("inventory_movements")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (productId) {
-        query = query.eq("product_id", productId);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -44,7 +19,6 @@ export function useInventoryMovements(productId?: string) {
 
 export function useUpdateStock() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({
       productId,
@@ -61,14 +35,39 @@ export function useUpdateStock() {
         p_product_id: productId,
         p_type: type,
         p_quantity: quantity,
-        p_reason: reason || null,
+        p_reason: reason ?? null,
       });
-
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["product_stock"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_movements"] });
+      const typeLabel =
+        variables.type === "entrada"
+          ? "Entrada"
+          : variables.type === "salida"
+            ? "Salida"
+            : "Ajuste";
+      toast.success(`${typeLabel} de stock registrada`);
+    },
+    onError: () => {
+      toast.error("Error al registrar el movimiento de stock");
+    },
+  });
+}
+
+export function useInventoryMovements(productId?: string) {
+  return useQuery({
+    queryKey: ["inventory_movements", productId],
+    queryFn: async () => {
+      let query = supabase
+        .from("inventory_movements")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (productId) query = query.eq("product_id", productId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
     },
   });
 }

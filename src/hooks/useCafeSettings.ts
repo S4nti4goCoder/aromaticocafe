@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { CafeSettings } from "@/types";
 
@@ -31,6 +32,10 @@ export function useCafeSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cafe_settings"] });
+      toast.success("Configuración del café guardada");
+    },
+    onError: () => {
+      toast.error("Error al guardar la configuración");
     },
   });
 

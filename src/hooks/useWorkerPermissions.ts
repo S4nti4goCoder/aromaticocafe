@@ -1,39 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { PermissionModule, PermissionsMap } from "@/types";
 
-const MODULES: PermissionModule[] = [
-  "inventory",
-  "caja",
-  "workers",
-  "accounting",
-  "settings",
-];
-
-export function useWorkerPermissions(workerId: string | null) {
+export function useWorkerPermissions(workerId: string) {
   return useQuery({
     queryKey: ["worker_permissions", workerId],
     queryFn: async (): Promise<PermissionsMap> => {
-      if (!workerId) return {};
-
       const { data, error } = await supabase
         .from("worker_permissions")
         .select("*")
         .eq("worker_id", workerId);
-
       if (error) throw error;
-
       const map: PermissionsMap = {};
-      MODULES.forEach((mod) => {
-        const found = data.find((p) => p.module === mod);
-        map[mod] = {
-          can_view: found?.can_view ?? false,
-          can_create: found?.can_create ?? false,
-          can_edit: found?.can_edit ?? false,
-          can_delete: found?.can_delete ?? false,
+      (data ?? []).forEach((p) => {
+        map[p.module as PermissionModule] = {
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit,
+          can_delete: p.can_delete,
         };
       });
-
       return map;
     },
     enabled: !!workerId,
@@ -42,31 +29,30 @@ export function useWorkerPermissions(workerId: string | null) {
 
 export function useSaveWorkerPermissions(workerId: string) {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (permissions: PermissionsMap) => {
-      const upsertData = MODULES.map((mod) => ({
+      const rows = Object.entries(permissions).map(([module, perms]) => ({
         worker_id: workerId,
-        module: mod,
-        can_view: permissions[mod]?.can_view ?? false,
-        can_create: permissions[mod]?.can_create ?? false,
-        can_edit: permissions[mod]?.can_edit ?? false,
-        can_delete: permissions[mod]?.can_delete ?? false,
+        module,
+        can_view: perms.can_view,
+        can_create: perms.can_create,
+        can_edit: perms.can_edit,
+        can_delete: perms.can_delete,
       }));
-
       const { error } = await supabase
         .from("worker_permissions")
-        .upsert(upsertData, { onConflict: "worker_id,module" });
-
+        .upsert(rows, { onConflict: "worker_id,module" });
       if (error) throw error;
     },
     onSuccess: () => {
-      // Invalida tanto los permisos del trabajador como los permisos propios
       queryClient.invalidateQueries({
         queryKey: ["worker_permissions", workerId],
       });
-      // Invalida todos los my_permissions para que cualquier sesión activa se actualice
       queryClient.invalidateQueries({ queryKey: ["my_permissions"] });
+      toast.success("Permisos guardados correctamente");
+    },
+    onError: () => {
+      toast.error("Error al guardar los permisos");
     },
   });
 }

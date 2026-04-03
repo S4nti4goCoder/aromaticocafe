@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 export interface SystemSettings {
@@ -49,6 +50,10 @@ export function useSystemSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["system_settings"] });
+      toast.success("Ajustes del sistema guardados");
+    },
+    onError: () => {
+      toast.error("Error al guardar los ajustes");
     },
   });
 
