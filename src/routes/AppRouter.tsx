@@ -15,13 +15,13 @@ import { AccountingPage } from "@/features/accounting/AccountingPage";
 import { AppearancePage } from "@/features/settings/AppearancePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
+import { ProfilePage } from "@/features/profile/ProfilePage";
 
 export function AppRouter() {
   return (
     <Routes>
-      {/* Ruta pública — sin auth */}
+      {/* Ruta pública */}
       <Route path="/" element={<LandingPage />} />
-
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
@@ -29,6 +29,7 @@ export function AppRouter() {
 
         <Route element={<AdminLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
 
           <Route element={<RoleRoute module="inventory" />}>
             <Route path="/inventory/categories" element={<CategoriesPage />} />

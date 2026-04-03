@@ -1,6 +1,7 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -26,6 +27,7 @@ const roleLabels: Record<string, string> = {
 export function Header() {
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -52,6 +54,10 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-8 w-8 cursor-pointer">
+              <AvatarImage
+                src={profile?.avatar_url ?? ""}
+                alt={profile?.full_name ?? ""}
+              />
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
@@ -69,6 +75,11 @@ export function Header() {
                 </Badge>
               )}
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <User className="mr-2 h-4 w-4" />
+              Mi perfil
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
