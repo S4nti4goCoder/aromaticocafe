@@ -11,12 +11,13 @@ import {
   ExternalLink,
   Coffee,
   ChevronDown,
-  Leaf,
   Star,
   Quote,
   Camera,
   Users,
   Calendar,
+  Menu,
+  X,
 } from "lucide-react";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
@@ -24,17 +25,18 @@ import { usePromotions } from "@/hooks/usePromotions";
 import type { Product } from "@/types";
 
 const CAFE = {
-  bg: "#faf6f1",
-  bgCard: "#ffffff",
-  bgSection: "#f3ede4",
-  bgDark: "#1c1410",
-  border: "#e8ddd0",
-  borderLight: "#f0e8dc",
-  primary: "#a0522d",
-  secondary: "#c8864a",
-  text: "#1c1410",
-  textMuted: "#7a6555",
-  textFaint: "#c4b5a5",
+  bg: "#0f0d0b",
+  bgCard: "#1a1612",
+  bgSection: "#141210",
+  bgLight: "#1f1a15",
+  border: "#2a2318",
+  borderGold: "#8b6914",
+  gold: "#d4a847",
+  goldLight: "#e8c76a",
+  amber: "#c8864a",
+  text: "#f5f0e8",
+  textMuted: "#a89880",
+  textFaint: "#5a4f42",
   white: "#ffffff",
 };
 
@@ -43,22 +45,74 @@ export function LandingPage() {
   const { data: allProducts } = useProducts();
   const { data: allPromotions } = usePromotions();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
 
-  const heroY = useTransform(scrollY, [0, 600], [0, 160]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const heroScale = useTransform(scrollY, [0, 500], [1, 1.08]);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (scrolled) setMobileMenuOpen(false);
+  }, [scrolled]);
 
   const featuredProducts: Product[] = (allProducts ?? []).filter(
     (p) => p.is_active && (settings?.featured_product_ids ?? []).includes(p.id),
   );
 
   const activePromotions = (allPromotions ?? []).filter((p) => p.is_active);
+
+  const navLinks = [
+    {
+      id: "nosotros",
+      label: "Nuestra historia",
+      show: !!(settings?.about_title || settings?.about_description),
+    },
+    {
+      id: "menu",
+      label: "Favoritos",
+      show: featuredProducts.length > 0,
+    },
+    {
+      id: "promociones",
+      label: "Promociones",
+      show: !!(settings?.show_promotions && activePromotions.length > 0),
+    },
+    {
+      id: "galeria",
+      label: "Galería",
+      show: !!(settings?.gallery_urls && settings.gallery_urls.length > 0),
+    },
+    {
+      id: "resenas",
+      label: "Reseñas",
+      show: !!(settings?.testimonials && settings.testimonials.length > 0),
+    },
+    {
+      id: "contacto",
+      label: "Contacto",
+      show: !!(
+        settings?.address ||
+        settings?.maps_embed_url ||
+        settings?.phone
+      ),
+    },
+  ].filter((l) => l.show);
+
+  const handleNavClick = (id: string) => {
+    setMobileMenuOpen(false);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   if (isLoading) {
     return (
@@ -70,7 +124,7 @@ export function LandingPage() {
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
         >
-          <Coffee className="h-10 w-10" style={{ color: CAFE.primary }} />
+          <Coffee className="h-10 w-10" style={{ color: CAFE.gold }} />
         </motion.div>
       </div>
     );
@@ -81,199 +135,269 @@ export function LandingPage() {
       className="min-h-screen font-sans overflow-x-hidden"
       style={{ backgroundColor: CAFE.bg, color: CAFE.text }}
     >
-      {/* NAVBAR */}
+      {/* ── NAVBAR ── */}
       <motion.nav
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
         style={{
-          backgroundColor: scrolled ? `${CAFE.bg}f5` : "transparent",
-          backdropFilter: scrolled ? "blur(20px)" : "none",
+          backgroundColor: scrolled ? "rgba(15,13,11,0.92)" : "transparent",
+          backdropFilter: scrolled ? "blur(24px)" : "none",
           borderBottom: scrolled ? `1px solid ${CAFE.border}` : "none",
-          paddingTop: scrolled ? "12px" : "20px",
-          paddingBottom: scrolled ? "12px" : "20px",
+          paddingTop: scrolled ? "14px" : "24px",
+          paddingBottom: scrolled ? "14px" : "24px",
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-3 shrink-0 cursor-pointer group"
+          >
             {settings?.logo_url ? (
               <img
                 src={settings.logo_url}
                 alt="Logo"
-                className="h-8 w-8 rounded-full object-cover"
-                style={{ border: `1px solid ${CAFE.border}` }}
+                className="h-9 w-9 rounded-full object-cover transition-all group-hover:opacity-80"
+                style={{ border: `2px solid ${CAFE.borderGold}` }}
               />
             ) : (
               <div
-                className="h-8 w-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: CAFE.primary }}
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all group-hover:scale-105"
+                style={{
+                  background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                }}
               >
-                <Coffee className="h-4 w-4 text-white" />
+                <Coffee className="h-4 w-4 text-black" />
               </div>
             )}
-            <span className="font-bold text-sm" style={{ color: CAFE.text }}>
+            <span
+              className="font-bold text-sm tracking-wide transition-opacity group-hover:opacity-70"
+              style={{ color: CAFE.text }}
+            >
               {settings?.cafe_name ?? "Aromático Café"}
             </span>
-          </div>
-          <div className="flex items-center gap-3">
+          </button>
+
+          {/* Links desktop */}
+          {navLinks.length > 0 && (
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <button
+                  key={link.id}
+                  onClick={() => handleNavClick(link.id)}
+                  className="text-xs px-4 py-2 rounded-full transition-all duration-200 font-medium cursor-pointer hover:text-white"
+                  style={{ color: CAFE.textMuted }}
+                >
+                  {link.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Acciones */}
+          <div className="flex items-center gap-3 shrink-0">
             {settings?.reservation_whatsapp && (
               <motion.a
                 href={`https://wa.me/${settings.reservation_whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.05 }}
-                className="hidden sm:flex items-center gap-2 text-xs px-4 py-2 rounded-full font-medium transition-all"
-                style={{ backgroundColor: CAFE.primary, color: CAFE.white }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="hidden sm:flex items-center gap-2 text-xs px-5 py-2.5 rounded-full font-semibold cursor-pointer"
+                style={{
+                  background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                  color: "#0f0d0b",
+                }}
               >
                 <Calendar className="h-3 w-3" />
-                Reservar mesa
+                Reservar
               </motion.a>
             )}
             <Link
               to="/login"
-              className="text-xs px-5 py-2 rounded-full transition-all duration-300 font-medium"
+              className="text-xs px-5 py-2.5 rounded-full transition-all duration-300 font-medium cursor-pointer"
               style={{
                 border: `1px solid ${CAFE.border}`,
                 color: CAFE.textMuted,
-                backgroundColor: CAFE.white,
               }}
             >
               Acceder
             </Link>
+
+            {/* Hamburger mobile */}
+            {navLinks.length > 0 && (
+              <button
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                className="md:hidden p-2.5 rounded-full transition-all cursor-pointer"
+                style={{
+                  backgroundColor: CAFE.bgCard,
+                  border: `1px solid ${CAFE.border}`,
+                  color: CAFE.textMuted,
+                }}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-4 w-4" />
+                ) : (
+                  <Menu className="h-4 w-4" />
+                )}
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Menú móvil */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="md:hidden px-6 pb-5 pt-3 flex flex-col gap-1"
+            style={{
+              backgroundColor: "rgba(15,13,11,0.97)",
+              borderBottom: `1px solid ${CAFE.border}`,
+            }}
+          >
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleNavClick(link.id)}
+                className="text-sm text-left px-4 py-3 rounded-xl transition-all font-medium cursor-pointer hover:text-white"
+                style={{ color: CAFE.textMuted }}
+              >
+                {link.label}
+              </button>
+            ))}
+            {settings?.reservation_whatsapp && (
+              
+               <a href={`https://wa.me/${settings.reservation_whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl font-semibold mt-2 cursor-pointer"
+                style={{
+                  background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                  color: "#0f0d0b",
+                }}
+              >
+                <Calendar className="h-4 w-4" />
+                Reservar mesa
+              </a>
+            )}
+          </motion.div>
+        )}
       </motion.nav>
 
-      {/* HERO */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <motion.div className="absolute inset-0" style={{ y: heroY }}>
+      {/* ── HERO ── */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+        <motion.div className="absolute inset-0" style={{ scale: heroScale }}>
           {settings?.cover_url ? (
-            <>
-              <div
-                className="absolute inset-0 bg-cover bg-center scale-110"
-                style={{ backgroundImage: `url(${settings.cover_url})` }}
-              />
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(to bottom, ${CAFE.bg}80, ${CAFE.bg}50, ${CAFE.bg})`,
-                }}
-              />
-            </>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${settings.cover_url})` }}
+            />
           ) : (
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: CAFE.bg }}
+              style={{ backgroundColor: CAFE.bgLight }}
             >
               <div
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `
-                  radial-gradient(ellipse at 15% 50%, ${CAFE.secondary}18 0%, transparent 55%),
-                  radial-gradient(ellipse at 85% 30%, ${CAFE.primary}12 0%, transparent 50%)
-                `,
-                }}
-              />
-              <div
-                className="absolute inset-0 opacity-40"
-                style={{
-                  backgroundImage: `radial-gradient(circle, ${CAFE.border} 1px, transparent 1px)`,
-                  backgroundSize: "32px 32px",
+                    radial-gradient(ellipse at 20% 50%, ${CAFE.gold}10 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 20%, ${CAFE.amber}08 0%, transparent 50%)
+                  `,
                 }}
               />
             </div>
           )}
+          {/* Overlay oscuro */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: settings?.cover_url
+                ? "linear-gradient(to bottom, rgba(15,13,11,0.55) 0%, rgba(15,13,11,0.3) 40%, rgba(15,13,11,0.85) 100%)"
+                : "transparent",
+            }}
+          />
         </motion.div>
 
+        {/* Contenido hero */}
         <motion.div
-          className="relative z-10 text-center px-6 max-w-4xl mx-auto"
+          className="relative z-10 text-center px-6 max-w-5xl mx-auto"
           style={{ opacity: heroOpacity }}
         >
+          {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
             className="flex justify-center mb-8"
           >
             <div
-              className="p-4 rounded-2xl shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-widest uppercase"
               style={{
-                backgroundColor: CAFE.white,
-                border: `1px solid ${CAFE.border}`,
+                backgroundColor: `${CAFE.gold}15`,
+                border: `1px solid ${CAFE.borderGold}`,
+                color: CAFE.gold,
               }}
             >
-              <Coffee className="h-7 w-7" style={{ color: CAFE.primary }} />
+              <Coffee className="h-3 w-3" />
+              {settings?.slogan ? "Bienvenidos" : "Est. 2018"}
             </div>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xs font-semibold tracking-[0.4em] uppercase mb-5"
-            style={{ color: CAFE.secondary }}
-          >
-            Bienvenidos
-          </motion.p>
-
+          {/* Nombre */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.3 }}
-            className="text-6xl sm:text-8xl font-black tracking-tight mb-5 leading-none"
-            style={{ color: CAFE.text }}
+            transition={{ duration: 1, delay: 0.3 }}
+            className="font-black tracking-tight leading-none mb-6"
+            style={{
+              color: CAFE.white,
+              fontSize: "clamp(3rem, 10vw, 8rem)",
+              textShadow: "0 4px 40px rgba(0,0,0,0.5)",
+            }}
           >
             {settings?.cafe_name ?? "Aromático Café"}
           </motion.h1>
 
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-            className="flex items-center justify-center gap-3 mb-6"
-          >
-            <div
-              className="h-px w-14"
-              style={{ backgroundColor: CAFE.border }}
-            />
-            <Leaf className="h-3.5 w-3.5" style={{ color: CAFE.secondary }} />
-            <div
-              className="h-px w-14"
-              style={{ backgroundColor: CAFE.border }}
-            />
-          </motion.div>
+          {/* Slogan */}
+          {settings?.slogan && (
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.5 }}
+              className="text-lg sm:text-xl mb-10 max-w-xl mx-auto leading-relaxed"
+              style={{ color: "rgba(245,240,232,0.75)" }}
+            >
+              {settings.slogan}
+            </motion.p>
+          )}
 
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.55 }}
-            className="text-base sm:text-lg mb-10 max-w-lg mx-auto leading-relaxed"
-            style={{ color: CAFE.textMuted }}
-          >
-            {settings?.slogan ?? "El mejor café de la ciudad"}
-          </motion.p>
-
+          {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.65 }}
-            className="flex items-center justify-center gap-3 flex-wrap"
+            transition={{ duration: 0.7, delay: 0.65 }}
+            className="flex items-center justify-center gap-4 flex-wrap"
           >
-            <motion.a
-              href="#menu"
+            <motion.button
+              onClick={() => handleNavClick("menu")}
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold shadow-md"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-bold cursor-pointer"
               style={{
-                backgroundColor: CAFE.primary,
-                color: CAFE.white,
-                boxShadow: `0 4px 20px ${CAFE.primary}30`,
+                background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                color: "#0f0d0b",
+                boxShadow: `0 8px 32px ${CAFE.gold}30`,
               }}
             >
               <Coffee className="h-4 w-4" />
               Ver menú
-            </motion.a>
+            </motion.button>
             {settings?.whatsapp && (
               <motion.a
                 href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`}
@@ -281,11 +405,12 @@ export function LandingPage() {
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.04, y: -2 }}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-medium"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium cursor-pointer"
                 style={{
-                  backgroundColor: CAFE.white,
-                  border: `1px solid ${CAFE.border}`,
-                  color: CAFE.textMuted,
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: CAFE.white,
+                  backdropFilter: "blur(12px)",
                 }}
               >
                 <MessageCircle className="h-4 w-4" />
@@ -295,13 +420,14 @@ export function LandingPage() {
           </motion.div>
         </motion.div>
 
+        {/* Scroll indicator */}
         <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
-          animate={{ y: [0, 7, 0] }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
         >
           <span
-            className="text-xs tracking-widest uppercase"
+            className="text-xs tracking-[0.3em] uppercase font-medium"
             style={{ color: CAFE.textFaint }}
           >
             Scroll
@@ -310,59 +436,50 @@ export function LandingPage() {
         </motion.div>
       </section>
 
-      {/* SOBRE NOSOTROS */}
+      {/* ── SOBRE NOSOTROS ── */}
       {(settings?.about_title || settings?.about_description) && (
         <section
-          className="py-28 px-6"
+          id="nosotros"
+          className="py-32 px-6"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-            }}
-          />
-          <div className="max-w-6xl mx-auto pt-24">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <motion.div
-                initial={{ opacity: 0, x: -30 }}
+                initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.7 }}
+                transition={{ duration: 0.8 }}
               >
                 <p
-                  className="text-xs font-semibold tracking-[0.4em] uppercase mb-4"
-                  style={{ color: CAFE.secondary }}
+                  className="text-xs font-bold tracking-[0.4em] uppercase mb-5"
+                  style={{ color: CAFE.gold }}
                 >
                   Quiénes somos
                 </p>
                 <h2
-                  className="text-4xl sm:text-5xl font-black mb-6"
+                  className="text-4xl sm:text-6xl font-black mb-8 leading-tight"
                   style={{ color: CAFE.text }}
                 >
                   {settings.about_title}
                 </h2>
-                <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className="h-px w-10"
-                    style={{ backgroundColor: CAFE.border }}
-                  />
-                  <Coffee
-                    className="h-3 w-3"
-                    style={{ color: CAFE.secondary }}
-                  />
-                </div>
+                <div
+                  className="h-px w-16 mb-8"
+                  style={{
+                    background: `linear-gradient(90deg, ${CAFE.gold}, transparent)`,
+                  }}
+                />
                 <p
                   className="leading-relaxed text-base"
                   style={{ color: CAFE.textMuted }}
                 >
                   {settings.about_description}
                 </p>
-                <div className="grid grid-cols-3 gap-4 mt-8">
+                <div className="grid grid-cols-3 gap-4 mt-10">
                   {[
-                    { value: "6+", label: "Años de experiencia" },
-                    { value: "50+", label: "Productos en menú" },
-                    { value: "1000+", label: "Clientes felices" },
+                    { value: "6+", label: "Años" },
+                    { value: "50+", label: "Productos" },
+                    { value: "1K+", label: "Clientes" },
                   ].map((stat, i) => (
                     <motion.div
                       key={i}
@@ -370,21 +487,21 @@ export function LandingPage() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: i * 0.1 }}
-                      className="text-center p-4 rounded-2xl"
+                      className="text-center p-5 rounded-2xl"
                       style={{
                         backgroundColor: CAFE.bgCard,
                         border: `1px solid ${CAFE.border}`,
                       }}
                     >
                       <p
-                        className="text-2xl font-black"
-                        style={{ color: CAFE.primary }}
+                        className="text-3xl font-black"
+                        style={{ color: CAFE.gold }}
                       >
                         {stat.value}
                       </p>
                       <p
-                        className="text-xs mt-1"
-                        style={{ color: CAFE.textMuted }}
+                        className="text-xs mt-1 font-medium"
+                        style={{ color: CAFE.textFaint }}
                       >
                         {stat.label}
                       </p>
@@ -393,25 +510,45 @@ export function LandingPage() {
                 </div>
               </motion.div>
 
-              {settings.about_image_url && (
+              {settings.about_image_url ? (
                 <motion.div
-                  initial={{ opacity: 0, x: 30 }}
+                  initial={{ opacity: 0, x: 40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.7 }}
+                  transition={{ duration: 0.8 }}
                   className="relative"
                 >
                   <img
                     src={settings.about_image_url}
                     alt="Sobre nosotros"
-                    className="w-full h-96 object-cover rounded-3xl shadow-lg"
+                    className="w-full h-[500px] object-cover rounded-3xl"
+                    style={{ border: `1px solid ${CAFE.border}` }}
                   />
                   <div
-                    className="absolute -bottom-4 -left-4 p-4 rounded-2xl shadow-lg"
-                    style={{ backgroundColor: CAFE.primary }}
+                    className="absolute -bottom-5 -right-5 p-5 rounded-2xl shadow-2xl"
+                    style={{
+                      background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                    }}
                   >
-                    <Users className="h-6 w-6 text-white" />
+                    <Users className="h-6 w-6 text-black" />
                   </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: 40 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                  className="relative h-[400px] rounded-3xl flex items-center justify-center"
+                  style={{
+                    backgroundColor: CAFE.bgCard,
+                    border: `1px solid ${CAFE.border}`,
+                  }}
+                >
+                  <Coffee
+                    className="h-24 w-24 opacity-10"
+                    style={{ color: CAFE.gold }}
+                  />
                 </motion.div>
               )}
             </div>
@@ -419,98 +556,96 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* PRODUCTOS DESTACADOS */}
+      {/* ── PRODUCTOS DESTACADOS ── */}
       {featuredProducts.length > 0 && (
         <section
           id="menu"
-          className="py-28 px-6"
+          className="py-32 px-6"
           style={{ backgroundColor: CAFE.bg }}
         >
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-            }}
-          />
-          <div className="max-w-6xl mx-auto pt-24">
+          <div className="max-w-7xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-16"
             >
               <p
-                className="text-xs font-semibold tracking-[0.4em] uppercase mb-3"
-                style={{ color: CAFE.secondary }}
+                className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
+                style={{ color: CAFE.gold }}
               >
                 Selección especial
               </p>
-              <h2
-                className="text-4xl sm:text-5xl font-black mb-4"
-                style={{ color: CAFE.text }}
-              >
-                Nuestros Favoritos
-              </h2>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-end justify-between gap-4 flex-wrap">
+                <h2
+                  className="text-4xl sm:text-6xl font-black leading-tight"
+                  style={{ color: CAFE.text }}
+                >
+                  Nuestros
+                  <br />
+                  <span style={{ color: CAFE.gold }}>Favoritos</span>
+                </h2>
                 <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-                <Coffee className="h-3 w-3" style={{ color: CAFE.secondary }} />
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
+                  className="h-px flex-1 min-w-[40px] max-w-[200px]"
+                  style={{
+                    background: `linear-gradient(90deg, ${CAFE.borderGold}, transparent)`,
+                  }}
                 />
               </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.08 }}
-                  whileHover={{ y: -5 }}
-                  className="group rounded-2xl overflow-hidden transition-all duration-300"
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ y: -6 }}
+                  className="group rounded-2xl overflow-hidden cursor-pointer"
                   style={{
                     backgroundColor: CAFE.bgCard,
                     border: `1px solid ${CAFE.border}`,
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
                   }}
                 >
-                  <div className="relative h-52 overflow-hidden">
+                  <div className="relative h-56 overflow-hidden">
                     {product.image_url ? (
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
                     ) : (
                       <div
                         className="w-full h-full flex items-center justify-center"
-                        style={{ backgroundColor: CAFE.bgSection }}
+                        style={{ backgroundColor: CAFE.bgLight }}
                       >
                         <Coffee
-                          className="h-12 w-12 opacity-20"
-                          style={{ color: CAFE.primary }}
+                          className="h-16 w-16 opacity-10"
+                          style={{ color: CAFE.gold }}
                         />
                       </div>
                     )}
                     <div
-                      className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-md"
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       style={{
-                        backgroundColor: CAFE.primary,
-                        color: CAFE.white,
+                        background: `linear-gradient(to top, ${CAFE.bg}90, transparent)`,
+                      }}
+                    />
+                    <div
+                      className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold"
+                      style={{
+                        background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                        color: "#0f0d0b",
                       }}
                     >
                       ${product.price?.toLocaleString("es-CO")}
                     </div>
                   </div>
-                  <div className="p-5">
+                  <div className="p-6">
                     <h3
-                      className="font-bold text-base mb-1.5"
+                      className="font-bold text-lg mb-2"
                       style={{ color: CAFE.text }}
                     >
                       {product.name}
@@ -526,7 +661,9 @@ export function LandingPage() {
                   </div>
                   <div
                     className="h-0.5 w-0 group-hover:w-full transition-all duration-500"
-                    style={{ backgroundColor: CAFE.primary }}
+                    style={{
+                      background: `linear-gradient(90deg, ${CAFE.gold}, ${CAFE.amber})`,
+                    }}
                   />
                 </motion.div>
               ))}
@@ -535,76 +672,60 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* PROMOCIONES */}
+      {/* ── PROMOCIONES ── */}
       {settings?.show_promotions && activePromotions.length > 0 && (
         <section
-          className="py-28 px-6"
+          id="promociones"
+          className="py-32 px-6"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-            }}
-          />
-          <div className="max-w-6xl mx-auto pt-24">
+          <div className="max-w-7xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-16"
             >
               <p
-                className="text-xs font-semibold tracking-[0.4em] uppercase mb-3"
-                style={{ color: CAFE.secondary }}
+                className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
+                style={{ color: CAFE.gold }}
               >
                 Ofertas especiales
               </p>
               <h2
-                className="text-4xl sm:text-5xl font-black mb-4"
+                className="text-4xl sm:text-6xl font-black"
                 style={{ color: CAFE.text }}
               >
                 Promociones
               </h2>
-              <div className="flex items-center justify-center gap-3">
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-                <Star className="h-3 w-3" style={{ color: CAFE.secondary }} />
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-              </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {activePromotions.map((promo, index) => (
                 <motion.div
                   key={promo.id}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
                   whileHover={{ y: -4 }}
-                  className="p-6 rounded-2xl relative overflow-hidden"
+                  className="p-7 rounded-2xl relative overflow-hidden"
                   style={{
                     backgroundColor: CAFE.bgCard,
                     border: `1px solid ${CAFE.border}`,
                   }}
                 >
                   <div
-                    className="absolute top-0 right-0 w-24 h-24 rounded-full -translate-y-8 translate-x-8 opacity-10"
-                    style={{ backgroundColor: CAFE.primary }}
+                    className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-12 translate-x-12 opacity-5"
+                    style={{ backgroundColor: CAFE.gold }}
                   />
                   <div className="relative z-10">
                     <div
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
                       style={{
-                        backgroundColor: `${CAFE.primary}15`,
-                        color: CAFE.primary,
-                        border: `1px solid ${CAFE.border}`,
+                        backgroundColor: `${CAFE.gold}12`,
+                        border: `1px solid ${CAFE.borderGold}`,
+                        color: CAFE.gold,
                       }}
                     >
                       <Star className="h-3 w-3 fill-current" />
@@ -617,7 +738,7 @@ export function LandingPage() {
                             : "Oferta"}
                     </div>
                     <h3
-                      className="font-bold text-lg mb-2"
+                      className="font-bold text-xl mb-3"
                       style={{ color: CAFE.text }}
                     >
                       {promo.name}
@@ -638,69 +759,59 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* GALERÍA */}
+      {/* ── GALERÍA ── */}
       {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
-        <section className="py-28 px-6" style={{ backgroundColor: CAFE.bg }}>
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-            }}
-          />
-          <div className="max-w-6xl mx-auto pt-24">
+        <section
+          id="galeria"
+          className="py-32 px-6"
+          style={{ backgroundColor: CAFE.bg }}
+        >
+          <div className="max-w-7xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-16"
             >
               <p
-                className="text-xs font-semibold tracking-[0.4em] uppercase mb-3"
-                style={{ color: CAFE.secondary }}
+                className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
+                style={{ color: CAFE.gold }}
               >
                 Nuestro espacio
               </p>
               <h2
-                className="text-4xl sm:text-5xl font-black mb-4"
+                className="text-4xl sm:text-6xl font-black"
                 style={{ color: CAFE.text }}
               >
                 Galería
               </h2>
-              <div className="flex items-center justify-center gap-3">
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-                <Camera className="h-3 w-3" style={{ color: CAFE.secondary }} />
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-              </div>
             </motion.div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {settings.gallery_urls.map((url, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.92 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
                   whileHover={{ scale: 1.03 }}
-                  className={`relative overflow-hidden rounded-2xl ${index === 0 ? "col-span-2 row-span-2" : ""}`}
+                  className={`relative overflow-hidden rounded-2xl cursor-pointer ${index === 0 ? "col-span-2 row-span-2" : ""}`}
                   style={{ border: `1px solid ${CAFE.border}` }}
                 >
                   <img
                     src={url}
                     alt={`Galería ${index + 1}`}
-                    className={`w-full object-cover ${index === 0 ? "h-64 sm:h-80" : "h-36 sm:h-48"} group-hover:scale-105 transition-transform duration-500`}
+                    className={`w-full object-cover transition-transform duration-700 hover:scale-110 ${index === 0 ? "h-64 sm:h-80" : "h-36 sm:h-48"}`}
                   />
                   <div
                     className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                    style={{ backgroundColor: `${CAFE.primary}20` }}
+                    style={{ backgroundColor: "rgba(15,13,11,0.5)" }}
                   >
-                    <Camera className="h-8 w-8" style={{ color: CAFE.white }} />
+                    <Camera
+                      className="h-8 w-8"
+                      style={{ color: CAFE.goldLight }}
+                    />
                   </div>
                 </motion.div>
               ))}
@@ -709,68 +820,51 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* TESTIMONIOS */}
+      {/* ── TESTIMONIOS ── */}
       {settings?.testimonials && settings.testimonials.length > 0 && (
         <section
-          className="py-28 px-6"
+          id="resenas"
+          className="py-32 px-6"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-            }}
-          />
-          <div className="max-w-6xl mx-auto pt-24">
+          <div className="max-w-7xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-16"
             >
               <p
-                className="text-xs font-semibold tracking-[0.4em] uppercase mb-3"
-                style={{ color: CAFE.secondary }}
+                className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
+                style={{ color: CAFE.gold }}
               >
                 Lo que dicen
               </p>
               <h2
-                className="text-4xl sm:text-5xl font-black mb-4"
+                className="text-4xl sm:text-6xl font-black"
                 style={{ color: CAFE.text }}
               >
                 Nuestros Clientes
               </h2>
-              <div className="flex items-center justify-center gap-3">
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-                <Quote className="h-3 w-3" style={{ color: CAFE.secondary }} />
-                <div
-                  className="h-px w-10"
-                  style={{ backgroundColor: CAFE.border }}
-                />
-              </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {settings.testimonials.map((testimonial, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="p-6 rounded-2xl relative"
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="p-7 rounded-2xl"
                   style={{
                     backgroundColor: CAFE.bgCard,
                     border: `1px solid ${CAFE.border}`,
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
                   }}
                 >
                   <Quote
-                    className="h-8 w-8 mb-4 opacity-20"
-                    style={{ color: CAFE.primary }}
+                    className="h-8 w-8 mb-5 opacity-30"
+                    style={{ color: CAFE.gold }}
                   />
                   <p
                     className="text-sm leading-relaxed mb-6 italic"
@@ -781,10 +875,11 @@ export function LandingPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div
-                        className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
+                        className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm"
                         style={{
-                          backgroundColor: `${CAFE.primary}15`,
-                          color: CAFE.primary,
+                          background: `linear-gradient(135deg, ${CAFE.gold}20, ${CAFE.amber}20)`,
+                          border: `1px solid ${CAFE.borderGold}`,
+                          color: CAFE.gold,
                         }}
                       >
                         {testimonial.name.charAt(0)}
@@ -803,12 +898,10 @@ export function LandingPage() {
                           className="h-3.5 w-3.5"
                           style={{
                             color:
-                              i < testimonial.rating
-                                ? CAFE.secondary
-                                : CAFE.border,
+                              i < testimonial.rating ? CAFE.gold : CAFE.border,
                             fill:
                               i < testimonial.rating
-                                ? CAFE.secondary
+                                ? CAFE.gold
                                 : "transparent",
                           }}
                         />
@@ -822,25 +915,47 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* BANNER DE RESERVAS */}
+      {/* ── BANNER RESERVAS ── */}
       {settings?.reservation_title && (
-        <section
-          className="py-20 px-6"
-          style={{ backgroundColor: CAFE.primary }}
-        >
-          <div className="max-w-4xl mx-auto text-center">
+        <section className="py-24 px-6 relative overflow-hidden">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${CAFE.gold}18 0%, ${CAFE.amber}10 50%, ${CAFE.gold}08 100%)`,
+              backgroundColor: CAFE.bgLight,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ border: `1px solid ${CAFE.borderGold}` }}
+          />
+          <div className="max-w-4xl mx-auto text-center relative z-10">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.7 }}
             >
-              <Calendar className="h-12 w-12 mx-auto mb-6 opacity-80 text-white" />
-              <h2 className="text-3xl sm:text-4xl font-black mb-4 text-white">
+              <div
+                className="inline-flex items-center justify-center p-4 rounded-2xl mb-8"
+                style={{
+                  backgroundColor: `${CAFE.gold}12`,
+                  border: `1px solid ${CAFE.borderGold}`,
+                }}
+              >
+                <Calendar className="h-8 w-8" style={{ color: CAFE.gold }} />
+              </div>
+              <h2
+                className="text-3xl sm:text-5xl font-black mb-5"
+                style={{ color: CAFE.text }}
+              >
                 {settings.reservation_title}
               </h2>
               {settings.reservation_description && (
-                <p className="text-lg mb-8 opacity-80 text-white max-w-xl mx-auto">
+                <p
+                  className="text-lg mb-10 max-w-xl mx-auto leading-relaxed"
+                  style={{ color: CAFE.textMuted }}
+                >
                   {settings.reservation_description}
                 </p>
               )}
@@ -851,8 +966,12 @@ export function LandingPage() {
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-semibold text-sm shadow-lg"
-                  style={{ backgroundColor: CAFE.white, color: CAFE.primary }}
+                  className="inline-flex items-center gap-3 px-9 py-4 rounded-full font-bold text-sm cursor-pointer"
+                  style={{
+                    background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                    color: "#0f0d0b",
+                    boxShadow: `0 8px 40px ${CAFE.gold}30`,
+                  }}
                 >
                   <MessageCircle className="h-5 w-5" />
                   Reservar por WhatsApp
@@ -863,75 +982,64 @@ export function LandingPage() {
         </section>
       )}
 
-      {/* HORARIOS Y CONTACTO */}
-      <section className="py-28 px-6" style={{ backgroundColor: CAFE.bg }}>
-        <div
-          className="h-px"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${CAFE.border}, transparent)`,
-          }}
-        />
-        <div className="max-w-6xl mx-auto pt-24">
+      {/* ── HORARIOS Y CONTACTO ── */}
+      <section
+        id="contacto"
+        className="py-32 px-6"
+        style={{ backgroundColor: CAFE.bg }}
+      >
+        <div className="max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="mb-16"
           >
             <p
-              className="text-xs font-semibold tracking-[0.4em] uppercase mb-3"
-              style={{ color: CAFE.secondary }}
+              className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
+              style={{ color: CAFE.gold }}
             >
               Encuéntranos
             </p>
             <h2
-              className="text-4xl sm:text-5xl font-black mb-4"
+              className="text-4xl sm:text-6xl font-black"
               style={{ color: CAFE.text }}
             >
               Visítanos
             </h2>
-            <div className="flex items-center justify-center gap-3">
-              <div
-                className="h-px w-10"
-                style={{ backgroundColor: CAFE.border }}
-              />
-              <Leaf className="h-3 w-3" style={{ color: CAFE.secondary }} />
-              <div
-                className="h-px w-10"
-                style={{ backgroundColor: CAFE.border }}
-              />
-            </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Horarios */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="rounded-2xl p-7"
+              transition={{ duration: 0.7 }}
+              className="rounded-2xl p-8"
               style={{
                 backgroundColor: CAFE.bgCard,
                 border: `1px solid ${CAFE.border}`,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
               }}
             >
-              <div className="flex items-center gap-3 mb-7">
+              <div className="flex items-center gap-4 mb-8">
                 <div
-                  className="p-2.5 rounded-xl"
+                  className="p-3 rounded-xl"
                   style={{
-                    backgroundColor: `${CAFE.primary}12`,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: `${CAFE.gold}10`,
+                    border: `1px solid ${CAFE.borderGold}`,
                   }}
                 >
-                  <Clock className="h-4 w-4" style={{ color: CAFE.primary }} />
+                  <Clock className="h-5 w-5" style={{ color: CAFE.gold }} />
                 </div>
                 <div>
-                  <h3 className="font-bold" style={{ color: CAFE.text }}>
+                  <h3
+                    className="font-bold text-lg"
+                    style={{ color: CAFE.text }}
+                  >
                     Horarios
                   </h3>
-                  <p className="text-xs" style={{ color: CAFE.textMuted }}>
+                  <p className="text-xs" style={{ color: CAFE.textFaint }}>
                     Siempre listos para servirte
                   </p>
                 </div>
@@ -943,82 +1051,84 @@ export function LandingPage() {
               ]
                 .filter((h) => h.value)
                 .map((horario, i) => (
-                  <motion.div
+                  <div
                     key={i}
-                    initial={{ opacity: 0, x: -8 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex justify-between items-center py-3.5"
-                    style={{ borderBottom: `1px solid ${CAFE.borderLight}` }}
+                    className="flex justify-between items-center py-4"
+                    style={{ borderBottom: `1px solid ${CAFE.border}` }}
                   >
                     <span className="text-sm" style={{ color: CAFE.textMuted }}>
                       {horario.label}
                     </span>
                     <span
-                      className="text-xs font-semibold px-3 py-1 rounded-full"
+                      className="text-xs font-bold px-3 py-1.5 rounded-full"
                       style={{
                         backgroundColor:
                           horario.value?.toLowerCase() === "cerrado"
-                            ? "#fff0f0"
-                            : `${CAFE.primary}12`,
+                            ? "rgba(220,38,38,0.1)"
+                            : `${CAFE.gold}10`,
                         color:
                           horario.value?.toLowerCase() === "cerrado"
-                            ? "#dc2626"
-                            : CAFE.primary,
-                        border: `1px solid ${horario.value?.toLowerCase() === "cerrado" ? "#fecaca" : CAFE.border}`,
+                            ? "#ef4444"
+                            : CAFE.gold,
+                        border: `1px solid ${
+                          horario.value?.toLowerCase() === "cerrado"
+                            ? "rgba(220,38,38,0.2)"
+                            : CAFE.borderGold
+                        }`,
                       }}
                     >
                       {horario.value}
                     </span>
-                  </motion.div>
+                  </div>
                 ))}
             </motion.div>
 
             {/* Contacto */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="rounded-2xl p-7"
+              transition={{ duration: 0.7 }}
+              className="rounded-2xl p-8"
               style={{
                 backgroundColor: CAFE.bgCard,
                 border: `1px solid ${CAFE.border}`,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
               }}
             >
-              <div className="flex items-center gap-3 mb-7">
+              <div className="flex items-center gap-4 mb-8">
                 <div
-                  className="p-2.5 rounded-xl"
+                  className="p-3 rounded-xl"
                   style={{
-                    backgroundColor: `${CAFE.primary}12`,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: `${CAFE.gold}10`,
+                    border: `1px solid ${CAFE.borderGold}`,
                   }}
                 >
-                  <Phone className="h-4 w-4" style={{ color: CAFE.primary }} />
+                  <Phone className="h-5 w-5" style={{ color: CAFE.gold }} />
                 </div>
                 <div>
-                  <h3 className="font-bold" style={{ color: CAFE.text }}>
+                  <h3
+                    className="font-bold text-lg"
+                    style={{ color: CAFE.text }}
+                  >
                     Contacto
                   </h3>
-                  <p className="text-xs" style={{ color: CAFE.textMuted }}>
+                  <p className="text-xs" style={{ color: CAFE.textFaint }}>
                     Con gusto te atendemos
                   </p>
                 </div>
               </div>
-              <div className="space-y-2.5 mb-6">
+              <div className="space-y-3 mb-6">
                 {settings?.address && (
                   <div
-                    className="flex items-start gap-3 p-3.5 rounded-xl"
+                    className="flex items-start gap-4 p-4 rounded-xl"
                     style={{
-                      backgroundColor: CAFE.bgSection,
-                      border: `1px solid ${CAFE.borderLight}`,
+                      backgroundColor: CAFE.bgLight,
+                      border: `1px solid ${CAFE.border}`,
                     }}
                   >
                     <MapPin
                       className="h-4 w-4 mt-0.5 shrink-0"
-                      style={{ color: CAFE.primary }}
+                      style={{ color: CAFE.gold }}
                     />
                     <span className="text-sm" style={{ color: CAFE.textMuted }}>
                       {settings.address}
@@ -1028,16 +1138,16 @@ export function LandingPage() {
                 {settings?.phone && (
                   <motion.a
                     href={`tel:${settings.phone}`}
-                    whileHover={{ x: 3 }}
-                    className="flex items-center gap-3 p-3.5 rounded-xl transition-all"
+                    whileHover={{ x: 4 }}
+                    className="flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer"
                     style={{
-                      backgroundColor: CAFE.bgSection,
-                      border: `1px solid ${CAFE.borderLight}`,
+                      backgroundColor: CAFE.bgLight,
+                      border: `1px solid ${CAFE.border}`,
                     }}
                   >
                     <Phone
                       className="h-4 w-4 shrink-0"
-                      style={{ color: CAFE.primary }}
+                      style={{ color: CAFE.gold }}
                     />
                     <span className="text-sm" style={{ color: CAFE.textMuted }}>
                       {settings.phone}
@@ -1047,16 +1157,16 @@ export function LandingPage() {
                 {settings?.email && (
                   <motion.a
                     href={`mailto:${settings.email}`}
-                    whileHover={{ x: 3 }}
-                    className="flex items-center gap-3 p-3.5 rounded-xl transition-all"
+                    whileHover={{ x: 4 }}
+                    className="flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer"
                     style={{
-                      backgroundColor: CAFE.bgSection,
-                      border: `1px solid ${CAFE.borderLight}`,
+                      backgroundColor: CAFE.bgLight,
+                      border: `1px solid ${CAFE.border}`,
                     }}
                   >
                     <Mail
                       className="h-4 w-4 shrink-0"
-                      style={{ color: CAFE.primary }}
+                      style={{ color: CAFE.gold }}
                     />
                     <span className="text-sm" style={{ color: CAFE.textMuted }}>
                       {settings.email}
@@ -1067,25 +1177,25 @@ export function LandingPage() {
               {(settings?.instagram_url || settings?.facebook_url) && (
                 <div
                   className="pt-5"
-                  style={{ borderTop: `1px solid ${CAFE.borderLight}` }}
+                  style={{ borderTop: `1px solid ${CAFE.border}` }}
                 >
                   <p
-                    className="text-xs uppercase tracking-widest mb-3"
+                    className="text-xs uppercase tracking-widest mb-4 font-medium"
                     style={{ color: CAFE.textFaint }}
                   >
                     Síguenos
                   </p>
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     {settings?.instagram_url && (
                       <motion.a
                         href={settings.instagram_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        whileHover={{ scale: 1.08, y: -2 }}
+                        whileHover={{ scale: 1.06, y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium cursor-pointer"
                         style={{
-                          backgroundColor: CAFE.bgSection,
+                          backgroundColor: CAFE.bgLight,
                           border: `1px solid ${CAFE.border}`,
                           color: CAFE.textMuted,
                         }}
@@ -1099,11 +1209,11 @@ export function LandingPage() {
                         href={settings.facebook_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        whileHover={{ scale: 1.08, y: -2 }}
+                        whileHover={{ scale: 1.06, y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium cursor-pointer"
                         style={{
-                          backgroundColor: CAFE.bgSection,
+                          backgroundColor: CAFE.bgLight,
                           border: `1px solid ${CAFE.border}`,
                           color: CAFE.textMuted,
                         }}
@@ -1118,15 +1228,18 @@ export function LandingPage() {
             </motion.div>
           </div>
 
-          {/* MAPA */}
+          {/* Mapa */}
           {settings?.maps_embed_url && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.7 }}
               className="rounded-2xl overflow-hidden"
-              style={{ border: `1px solid ${CAFE.border}`, height: "400px" }}
+              style={{
+                border: `1px solid ${CAFE.border}`,
+                height: "400px",
+              }}
             >
               <iframe
                 src={settings.maps_embed_url}
@@ -1142,25 +1255,55 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-10 px-6" style={{ backgroundColor: CAFE.bgDark }}>
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <Coffee className="h-4 w-4" style={{ color: CAFE.secondary }} />
+      {/* ── FOOTER ── */}
+      <footer
+        className="py-10 px-6"
+        style={{
+          backgroundColor: CAFE.bgSection,
+          borderTop: `1px solid ${CAFE.border}`,
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div
+              className="h-7 w-7 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
+              style={{
+                background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+              }}
+            >
+              <Coffee className="h-3.5 w-3.5 text-black" />
+            </div>
             <span
-              className="text-sm font-medium"
-              style={{ color: CAFE.textFaint }}
+              className="text-sm font-semibold transition-opacity group-hover:opacity-70"
+              style={{ color: CAFE.textMuted }}
             >
               {settings?.cafe_name ?? "Aromático Café"}
             </span>
+          </button>
+
+          <div className="flex items-center gap-6">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleNavClick(link.id)}
+                className="text-xs cursor-pointer transition-colors hover:text-white"
+                style={{ color: CAFE.textFaint }}
+              >
+                {link.label}
+              </button>
+            ))}
           </div>
-          <p className="text-xs" style={{ color: "#3a3530" }}>
+
+          <p className="text-xs" style={{ color: CAFE.textFaint }}>
             © {new Date().getFullYear()} · Todos los derechos reservados
           </p>
         </div>
       </footer>
 
-      {/* WHATSAPP FLOTANTE */}
+      {/* ── WHATSAPP FLOTANTE ── */}
       {settings?.whatsapp && (
         <motion.a
           href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`}
@@ -1171,10 +1314,10 @@ export function LandingPage() {
           transition={{ delay: 1.5, type: "spring", stiffness: 200 }}
           whileHover={{ scale: 1.12 }}
           whileTap={{ scale: 0.95 }}
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-full"
+          className="fixed bottom-6 right-6 z-50 p-4 rounded-full cursor-pointer"
           style={{
             backgroundColor: "#25D366",
-            boxShadow: "0 8px 30px #25D36640",
+            boxShadow: "0 8px 32px rgba(37,211,102,0.35)",
           }}
         >
           <MessageCircle className="h-6 w-6 text-white" />
