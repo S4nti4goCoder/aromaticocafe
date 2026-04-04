@@ -111,7 +111,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
@@ -138,4 +138,23 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/* Scrollbar del modal del menú */
+.menu-modal-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.menu-modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu-modal-scroll::-webkit-scrollbar-thumb {
+  background: #2a2318;
+  border-radius: 999px;
+}
+
+.menu-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #8b6914;
 }

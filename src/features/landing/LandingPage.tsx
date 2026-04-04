@@ -23,6 +23,7 @@ import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
 import { usePromotions } from "@/hooks/usePromotions";
 import type { Product } from "@/types";
+import { MenuModal } from "@/features/landing/MenuModal";
 
 const CAFE = {
   bg: "#0f0d0b",
@@ -46,6 +47,7 @@ export function LandingPage() {
   const { data: allPromotions } = usePromotions();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuModalOpen, setMenuModalOpen] = useState(false);
   const { scrollY } = useScroll();
 
   const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
@@ -269,8 +271,8 @@ export function LandingPage() {
               </button>
             ))}
             {settings?.reservation_whatsapp && (
-              
-              <a  href={`https://wa.me/${settings.reservation_whatsapp}`}
+              <a
+                href={`https://wa.me/${settings.reservation_whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
@@ -378,7 +380,7 @@ export function LandingPage() {
             className="flex items-center justify-center gap-4 flex-wrap"
           >
             <motion.button
-              onClick={() => handleNavClick("menu")}
+              onClick={() => setMenuModalOpen(true)}
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-bold cursor-pointer"
@@ -553,8 +555,7 @@ export function LandingPage() {
                 className="text-4xl sm:text-6xl font-black leading-tight"
                 style={{ color: CAFE.text }}
               >
-                Nuestros{" "}
-                <span style={{ color: CAFE.gold }}>Favoritos</span>
+                Nuestros <span style={{ color: CAFE.gold }}>Favoritos</span>
               </h2>
             </motion.div>
 
@@ -1268,7 +1269,14 @@ export function LandingPage() {
       </footer>
 
       {/* ── BOTONES FLOTANTES ── */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3">
+      <MenuModal
+        open={menuModalOpen}
+        onClose={() => setMenuModalOpen(false)}
+        cafeName={settings?.cafe_name}
+      />
+      <div
+        className={`fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3 transition-opacity duration-200 ${menuModalOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+      >
         {(settings?.whatsapp || settings?.reservation_whatsapp) && (
           <motion.a
             href={`https://wa.me/${(settings?.whatsapp || settings?.reservation_whatsapp)?.replace(/\D/g, "")}`}
