@@ -226,7 +226,6 @@ export function LandingPage() {
               Acceder
             </Link>
 
-            {/* Hamburger mobile */}
             {navLinks.length > 0 && (
               <button
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -270,8 +269,8 @@ export function LandingPage() {
               </button>
             ))}
             {settings?.reservation_whatsapp && (
-              <a
-                href={`https://wa.me/${settings.reservation_whatsapp}`}
+              
+              <a  href={`https://wa.me/${settings.reservation_whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
@@ -313,7 +312,6 @@ export function LandingPage() {
               />
             </div>
           )}
-          {/* Overlay oscuro */}
           <div
             className="absolute inset-0"
             style={{
@@ -324,12 +322,10 @@ export function LandingPage() {
           />
         </motion.div>
 
-        {/* Contenido hero */}
         <motion.div
           className="relative z-10 text-center px-6 max-w-5xl mx-auto"
           style={{ opacity: heroOpacity }}
         >
-          {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -345,11 +341,10 @@ export function LandingPage() {
               }}
             >
               <Coffee className="h-3 w-3" />
-              {settings?.slogan ? "Bienvenidos" : "Est. 2018"}
+              Bienvenidos
             </div>
           </motion.div>
 
-          {/* Nombre */}
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -364,7 +359,6 @@ export function LandingPage() {
             {settings?.cafe_name ?? "Aromático Café"}
           </motion.h1>
 
-          {/* Slogan */}
           {settings?.slogan && (
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -377,7 +371,6 @@ export function LandingPage() {
             </motion.p>
           )}
 
-          {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -398,29 +391,9 @@ export function LandingPage() {
               <Coffee className="h-4 w-4" />
               Ver menú
             </motion.button>
-            {settings?.whatsapp && (
-              <motion.a
-                href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ scale: 1.04, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium cursor-pointer"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  color: CAFE.white,
-                  backdropFilter: "blur(12px)",
-                }}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Escríbenos
-              </motion.a>
-            )}
           </motion.div>
         </motion.div>
 
-        {/* Scroll indicator */}
         <motion.div
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
           animate={{ y: [0, 8, 0] }}
@@ -440,10 +413,10 @@ export function LandingPage() {
       {(settings?.about_title || settings?.about_description) && (
         <section
           id="nosotros"
-          className="py-32 px-6"
+          className="min-h-screen px-6 flex flex-col justify-center py-24"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <motion.div
                 initial={{ opacity: 0, x: -40 }}
@@ -521,7 +494,7 @@ export function LandingPage() {
                   <img
                     src={settings.about_image_url}
                     alt="Sobre nosotros"
-                    className="w-full h-[500px] object-cover rounded-3xl"
+                    className="w-full h-125 object-cover rounded-3xl"
                     style={{ border: `1px solid ${CAFE.border}` }}
                   />
                   <div
@@ -539,7 +512,7 @@ export function LandingPage() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.8 }}
-                  className="relative h-[400px] rounded-3xl flex items-center justify-center"
+                  className="relative h-100 rounded-3xl flex items-center justify-center"
                   style={{
                     backgroundColor: CAFE.bgCard,
                     border: `1px solid ${CAFE.border}`,
@@ -560,10 +533,10 @@ export function LandingPage() {
       {featuredProducts.length > 0 && (
         <section
           id="menu"
-          className="py-32 px-6"
+          className="min-h-screen px-6 flex flex-col justify-center py-24"
           style={{ backgroundColor: CAFE.bg }}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -576,22 +549,13 @@ export function LandingPage() {
               >
                 Selección especial
               </p>
-              <div className="flex items-end justify-between gap-4 flex-wrap">
-                <h2
-                  className="text-4xl sm:text-6xl font-black leading-tight"
-                  style={{ color: CAFE.text }}
-                >
-                  Nuestros
-                  <br />
-                  <span style={{ color: CAFE.gold }}>Favoritos</span>
-                </h2>
-                <div
-                  className="h-px flex-1 min-w-[40px] max-w-[200px]"
-                  style={{
-                    background: `linear-gradient(90deg, ${CAFE.borderGold}, transparent)`,
-                  }}
-                />
-              </div>
+              <h2
+                className="text-4xl sm:text-6xl font-black leading-tight"
+                style={{ color: CAFE.text }}
+              >
+                Nuestros{" "}
+                <span style={{ color: CAFE.gold }}>Favoritos</span>
+              </h2>
             </motion.div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -676,10 +640,10 @@ export function LandingPage() {
       {settings?.show_promotions && activePromotions.length > 0 && (
         <section
           id="promociones"
-          className="py-32 px-6"
+          className="min-h-screen px-6 flex flex-col justify-center py-24"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -763,10 +727,10 @@ export function LandingPage() {
       {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
         <section
           id="galeria"
-          className="py-32 px-6"
+          className="min-h-screen px-6 flex flex-col justify-center py-24"
           style={{ backgroundColor: CAFE.bg }}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -824,10 +788,10 @@ export function LandingPage() {
       {settings?.testimonials && settings.testimonials.length > 0 && (
         <section
           id="resenas"
-          className="py-32 px-6"
+          className="min-h-screen px-6 flex flex-col justify-center py-24"
           style={{ backgroundColor: CAFE.bgSection }}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -985,10 +949,10 @@ export function LandingPage() {
       {/* ── HORARIOS Y CONTACTO ── */}
       <section
         id="contacto"
-        className="py-32 px-6"
+        className="min-h-screen px-6 flex flex-col justify-center py-24"
         style={{ backgroundColor: CAFE.bg }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto w-full">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1284,7 +1248,7 @@ export function LandingPage() {
             </span>
           </button>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-wrap justify-center">
             {navLinks.map((link) => (
               <button
                 key={link.id}
@@ -1332,7 +1296,6 @@ export function LandingPage() {
           </motion.a>
         )}
 
-        {/* Volver arriba */}
         <motion.button
           onClick={scrollToTop}
           initial={{ scale: 0, opacity: 0 }}
