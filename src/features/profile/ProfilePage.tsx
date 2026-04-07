@@ -72,8 +72,8 @@ export function ProfilePage() {
     if (profile) {
       reset({
         full_name: profile.full_name ?? "",
-        phone: (profile as any).phone ?? "",
-        address: (profile as any).address ?? "",
+        phone: profile.phone ?? "",
+        address: profile.address ?? "",
         avatar_url: profile.avatar_url ?? "",
       });
       setAvatarUrl(profile.avatar_url ?? "");

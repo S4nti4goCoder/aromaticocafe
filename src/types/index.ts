@@ -9,6 +9,8 @@ export interface Profile {
   is_active: boolean;
   must_change_password: boolean;
   has_system_access: boolean;
+  phone?: string | null;
+  address?: string | null;
   created_at: string;
   updated_at: string;
 }

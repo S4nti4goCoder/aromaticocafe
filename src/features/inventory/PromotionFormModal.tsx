@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,12 +74,11 @@ export function PromotionFormModal({
     handleSubmit,
     reset,
     control,
-    watch,
     formState: { errors },
   } = useForm<PromotionFormData>({ defaultValues });
 
-  const appliesTo = watch("applies_to");
-  const promotionType = watch("type");
+  const appliesTo = useWatch({ control, name: "applies_to" });
+  const promotionType = useWatch({ control, name: "type" });
   const isPending = createPromotion.isPending || updatePromotion.isPending;
 
   useEffect(() => {

@@ -61,7 +61,7 @@ export function WorkersPage() {
 
   useEffect(() => {
     reset();
-  }, [search]);
+  }, [search, reset]);
 
   return (
     <div className="space-y-6">

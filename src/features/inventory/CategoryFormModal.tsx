@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,10 @@ export function CategoryFormModal({
     defaultValues,
   });
 
-  useEffect(() => {
+  const [lastCategoryKey, setLastCategoryKey] = useState<string | null>(null);
+  const categoryKey = category?.id ?? "new";
+  if (categoryKey !== lastCategoryKey) {
+    setLastCategoryKey(categoryKey);
     if (category) {
       reset({
         name: category.name,
@@ -63,14 +66,14 @@ export function CategoryFormModal({
       reset(defaultValues);
       setImageUrl(null);
     }
-  }, [category, reset]);
+  }
 
   const isPending = createCategory.isPending || updateCategory.isPending;
 
   const onSubmit = async (data: CategoryFormData) => {
     const payload = { ...data, image_url: imageUrl };
     if (isEditing && category) {
-      await updateCategory.mutateAsync({ id: category.id, ...payload });
+      await updateCategory.mutateAsync({ id: category.id, formData: payload });
     } else {
       await createCategory.mutateAsync(payload);
     }

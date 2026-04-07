@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,10 @@ export function WorkerFormModal({
     defaultValues,
   });
 
-  useEffect(() => {
+  const [lastOpenKey, setLastOpenKey] = useState<string | null>(null);
+  const openKey = open ? (worker?.id ?? "new") : null;
+  if (openKey !== lastOpenKey) {
+    setLastOpenKey(openKey);
     if (open) {
       if (worker) {
         reset({
@@ -111,7 +114,7 @@ export function WorkerFormModal({
         setActiveTab("info");
       }
     }
-  }, [worker, open, reset]);
+  }
 
   const isPending = createWorker.isPending || updateWorker.isPending;
   const isCreated = !!createdWorker;
@@ -121,7 +124,7 @@ export function WorkerFormModal({
     const payload = { ...data, avatar_url: avatarUrl };
 
     if (isEditing && worker) {
-      await updateWorker.mutateAsync({ id: worker.id, ...payload });
+      await updateWorker.mutateAsync({ id: worker.id, formData: payload });
       onClose();
     } else {
       const newWorker = await createWorker.mutateAsync(payload);

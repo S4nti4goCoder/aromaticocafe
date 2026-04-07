@@ -1,4 +1,4 @@
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,14 +48,14 @@ export function StockMovementModal({ open, onClose }: StockMovementModalProps) {
   const { data: categories = [] } = useCategories();
   const { data: products = [] } = useProducts();
 
-  const { register, handleSubmit, reset, control, watch } = useForm<FormData>({
+  const { register, handleSubmit, reset, control } = useForm<FormData>({
     defaultValues,
   });
 
-  const selectedCategoryId = watch("category_id");
-  const selectedProductId = watch("product_id");
-  const selectedType = watch("type");
-  const quantity = watch("quantity");
+  const selectedCategoryId = useWatch({ control, name: "category_id" });
+  const selectedProductId = useWatch({ control, name: "product_id" });
+  const selectedType = useWatch({ control, name: "type" });
+  const quantity = useWatch({ control, name: "quantity" });
 
   const filteredProducts = products.filter(
     (p) =>

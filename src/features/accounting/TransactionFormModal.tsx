@@ -1,4 +1,4 @@
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,13 +59,12 @@ export function TransactionFormModal({
     handleSubmit,
     reset,
     control,
-    watch,
     formState: { errors },
   } = useForm<TransactionFormData>({
     defaultValues: { ...defaultValues, type: defaultType },
   });
 
-  const transactionType = watch("type");
+  const transactionType = useWatch({ control, name: "type" });
   const categories =
     transactionType === "ingreso" ? ingresoCategories : egresoCategories;
 

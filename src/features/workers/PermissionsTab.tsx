@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,10 +37,12 @@ export function PermissionsTab({ workerId, workerRole }: PermissionsTabProps) {
   const { isSuperAdmin, isGerente } = usePermissions();
 
   const [permissions, setPermissions] = useState<PermissionsMap>({});
+  const [lastSynced, setLastSynced] = useState<PermissionsMap | null>(null);
 
-  useEffect(() => {
-    if (savedPermissions) setPermissions(savedPermissions);
-  }, [savedPermissions]);
+  if (savedPermissions && savedPermissions !== lastSynced) {
+    setLastSynced(savedPermissions);
+    setPermissions(savedPermissions);
+  }
 
   // super_admin y gerente tienen permisos fijos
   const isFixedRole = workerRole === "super_admin" || workerRole === "gerente";

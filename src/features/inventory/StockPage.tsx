@@ -61,9 +61,12 @@ export function StockPage() {
 
   useEffect(() => {
     resetStock();
-  }, [search]);
+  }, [search, resetStock]);
 
-  const movementTypeConfig = {
+  const movementTypeConfig: Record<
+    "entrada" | "salida" | "ajuste",
+    { label: string; color: string; icon: typeof ArrowUp }
+  > = {
     entrada: {
       label: "Entrada",
       color: "text-green-600 dark:text-green-400",
@@ -316,7 +319,10 @@ export function StockPage() {
                   </thead>
                   <tbody>
                     {paginatedMovements.map((movement, index) => {
-                      const config = movementTypeConfig[movement.type];
+                      const config =
+                        movementTypeConfig[
+                          movement.type as keyof typeof movementTypeConfig
+                        ];
                       const Icon = config.icon;
                       const product = products.find(
                         (p) => p.id === movement.product_id,

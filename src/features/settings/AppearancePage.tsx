@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
@@ -71,9 +71,10 @@ export function AppearancePage() {
 
   const { register, handleSubmit, reset } = useForm<FormData>();
 
-  useEffect(() => {
-    if (settings) {
-      reset({
+  const [lastSyncedSettings, setLastSyncedSettings] = useState<typeof settings | null>(null);
+  if (settings && settings !== lastSyncedSettings) {
+    setLastSyncedSettings(settings);
+    reset({
         cafe_name: settings.cafe_name,
         slogan: settings.slogan ?? "",
         primary_color: settings.primary_color,
@@ -101,8 +102,7 @@ export function AppearancePage() {
       setGalleryUrls(settings.gallery_urls ?? []);
       setShowPromotions(settings.show_promotions ?? true);
       setTestimonials(settings.testimonials ?? []);
-    }
-  }, [settings, reset]);
+  }
 
   const onSubmit = async (data: FormData) => {
     try {

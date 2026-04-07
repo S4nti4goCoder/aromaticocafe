@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,10 @@ export function ProductFormModal({
     defaultValues,
   });
 
-  useEffect(() => {
+  const [lastProductKey, setLastProductKey] = useState<string | null>(null);
+  const productKey = product?.id ?? "new";
+  if (productKey !== lastProductKey) {
+    setLastProductKey(productKey);
     if (product) {
       reset({
         name: product.name,
@@ -80,14 +83,14 @@ export function ProductFormModal({
       reset(defaultValues);
       setImageUrl(null);
     }
-  }, [product, reset]);
+  }
 
   const isPending = createProduct.isPending || updateProduct.isPending;
 
   const onSubmit = async (data: ProductFormData) => {
     const payload = { ...data, image_url: imageUrl };
     if (isEditing && product) {
-      await updateProduct.mutateAsync({ id: product.id, ...payload });
+      await updateProduct.mutateAsync({ id: product.id, formData: payload });
     } else {
       await createProduct.mutateAsync(payload);
     }
