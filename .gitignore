@@ -25,3 +25,17 @@ dist-ssr
 
 # Environment variables
 .env
+.env.*
+!.env.example
+
+# Claude Code (local config y memoria)
+.claude/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# OS
+Thumbs.db
