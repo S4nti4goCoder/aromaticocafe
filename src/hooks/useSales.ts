@@ -18,7 +18,7 @@ export function useTodaySales(cashRegisterId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as unknown as Sale[];
     },
     enabled: !!cashRegisterId,
   });
@@ -101,7 +101,7 @@ export function useCreateSale() {
         description: `Venta #${sale.id.slice(0, 8)}`,
       });
 
-      return sale;
+      return sale as unknown as Sale;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

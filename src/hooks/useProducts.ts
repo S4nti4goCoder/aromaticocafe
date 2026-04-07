@@ -12,7 +12,7 @@ export function useProducts() {
         .select("*, category:categories(id, name)")
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data;
+      return data as unknown as Product[];
     },
   });
 }

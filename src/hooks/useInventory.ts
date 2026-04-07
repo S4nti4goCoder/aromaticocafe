@@ -12,7 +12,7 @@ export function useProductStock() {
         .select("*")
         .order("product_name", { ascending: true });
       if (error) throw error;
-      return data;
+      return data as unknown as ProductStock[];
     },
   });
 }
@@ -35,7 +35,7 @@ export function useUpdateStock() {
         p_product_id: productId,
         p_type: type,
         p_quantity: quantity,
-        p_reason: reason ?? null,
+        p_reason: reason,
       });
       if (error) throw error;
     },

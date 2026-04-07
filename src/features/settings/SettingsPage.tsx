@@ -110,7 +110,9 @@ export function SettingsPage() {
 
   const handleExportData = async (table: string) => {
     try {
-      const { data, error } = await supabase.from(table).select("*");
+      const { data, error } = await supabase
+        .from(table as "products")
+        .select("*");
       if (error) throw error;
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",

@@ -13,7 +13,7 @@ export function usePromotions() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as unknown as Promotion[];
     },
   });
 }
@@ -31,7 +31,7 @@ export function useActivePromotions() {
         .or(`ends_at.is.null,ends_at.gte.${now}`);
 
       if (error) throw error;
-      return data;
+      return data as unknown as Promotion[];
     },
   });
 }
