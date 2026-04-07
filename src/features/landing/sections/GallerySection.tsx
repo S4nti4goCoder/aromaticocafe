@@ -49,6 +49,8 @@ export function GallerySection({ galleryUrls }: GallerySectionProps) {
               <img
                 src={url}
                 alt={`Galería ${index + 1}`}
+                loading="lazy"
+                decoding="async"
                 className={`w-full object-cover transition-transform duration-700 hover:scale-110 ${index === 0 ? "h-64 sm:h-80" : "h-36 sm:h-48"}`}
               />
               <div

@@ -1,24 +1,63 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Coffee } from "lucide-react";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
 import { usePromotions } from "@/hooks/usePromotions";
 import type { Product } from "@/types";
-import { MenuModal } from "@/features/landing/MenuModal";
-import { ReservaModal } from "@/features/landing/ReservaModal";
 import { CAFE, type NavLink } from "./cafeTheme";
 import { Navbar } from "./sections/Navbar";
 import { HeroSection } from "./sections/HeroSection";
-import { AboutSection } from "./sections/AboutSection";
-import { FeaturedProductsSection } from "./sections/FeaturedProductsSection";
-import { PromotionsSection } from "./sections/PromotionsSection";
-import { GallerySection } from "./sections/GallerySection";
-import { TestimonialsSection } from "./sections/TestimonialsSection";
-import { ReservationBanner } from "./sections/ReservationBanner";
-import { ContactSection } from "./sections/ContactSection";
-import { Footer } from "./sections/Footer";
-import { FloatingButtons } from "./sections/FloatingButtons";
+
+const AboutSection = lazy(() =>
+  import("./sections/AboutSection").then((m) => ({ default: m.AboutSection })),
+);
+const FeaturedProductsSection = lazy(() =>
+  import("./sections/FeaturedProductsSection").then((m) => ({
+    default: m.FeaturedProductsSection,
+  })),
+);
+const PromotionsSection = lazy(() =>
+  import("./sections/PromotionsSection").then((m) => ({
+    default: m.PromotionsSection,
+  })),
+);
+const GallerySection = lazy(() =>
+  import("./sections/GallerySection").then((m) => ({
+    default: m.GallerySection,
+  })),
+);
+const TestimonialsSection = lazy(() =>
+  import("./sections/TestimonialsSection").then((m) => ({
+    default: m.TestimonialsSection,
+  })),
+);
+const ReservationBanner = lazy(() =>
+  import("./sections/ReservationBanner").then((m) => ({
+    default: m.ReservationBanner,
+  })),
+);
+const ContactSection = lazy(() =>
+  import("./sections/ContactSection").then((m) => ({
+    default: m.ContactSection,
+  })),
+);
+const Footer = lazy(() =>
+  import("./sections/Footer").then((m) => ({ default: m.Footer })),
+);
+const FloatingButtons = lazy(() =>
+  import("./sections/FloatingButtons").then((m) => ({
+    default: m.FloatingButtons,
+  })),
+);
+const MenuModal = lazy(() =>
+  import("@/features/landing/MenuModal").then((m) => ({ default: m.MenuModal })),
+);
+const ReservaModal = lazy(() =>
+  import("@/features/landing/ReservaModal").then((m) => ({
+    default: m.ReservaModal,
+  })),
+);
 
 export function LandingPage() {
   const { settings, isLoading } = useCafeSettings();
@@ -135,57 +174,63 @@ export function LandingPage() {
         onOpenMenu={() => setMenuModalOpen(true)}
       />
 
-      {settings && (settings.about_title || settings.about_description) && (
-        <AboutSection settings={settings} />
-      )}
+      <Suspense fallback={null}>
+        {settings && (settings.about_title || settings.about_description) && (
+          <AboutSection settings={settings} />
+        )}
 
-      {featuredProducts.length > 0 && (
-        <FeaturedProductsSection products={featuredProducts} />
-      )}
+        {featuredProducts.length > 0 && (
+          <FeaturedProductsSection products={featuredProducts} />
+        )}
 
-      {settings?.show_promotions && activePromotions.length > 0 && (
-        <PromotionsSection promotions={activePromotions} />
-      )}
+        {settings?.show_promotions && activePromotions.length > 0 && (
+          <PromotionsSection promotions={activePromotions} />
+        )}
 
-      {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
-        <GallerySection galleryUrls={settings.gallery_urls} />
-      )}
+        {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
+          <GallerySection galleryUrls={settings.gallery_urls} />
+        )}
 
-      {settings?.testimonials && settings.testimonials.length > 0 && (
-        <TestimonialsSection testimonials={settings.testimonials} />
-      )}
+        {settings?.testimonials && settings.testimonials.length > 0 && (
+          <TestimonialsSection testimonials={settings.testimonials} />
+        )}
 
-      {settings?.reservation_title && (
-        <ReservationBanner settings={settings} />
-      )}
+        {settings?.reservation_title && (
+          <ReservationBanner settings={settings} />
+        )}
 
-      <ContactSection settings={settings} />
+        <ContactSection settings={settings} />
 
-      <Footer
-        settings={settings}
-        navLinks={navLinks}
-        onNavClick={handleNavClick}
-        onScrollToTop={scrollToTop}
-      />
+        <Footer
+          settings={settings}
+          navLinks={navLinks}
+          onNavClick={handleNavClick}
+          onScrollToTop={scrollToTop}
+        />
 
-      <ReservaModal
-        open={reservaModalOpen}
-        onClose={() => setReservaModalOpen(false)}
-        whatsapp={settings?.reservation_whatsapp ?? settings?.whatsapp}
-        cafeName={settings?.cafe_name}
-      />
-      <MenuModal
-        open={menuModalOpen}
-        onClose={() => setMenuModalOpen(false)}
-        cafeName={settings?.cafe_name}
-      />
+        {reservaModalOpen && (
+          <ReservaModal
+            open={reservaModalOpen}
+            onClose={() => setReservaModalOpen(false)}
+            whatsapp={settings?.reservation_whatsapp ?? settings?.whatsapp}
+            cafeName={settings?.cafe_name}
+          />
+        )}
+        {menuModalOpen && (
+          <MenuModal
+            open={menuModalOpen}
+            onClose={() => setMenuModalOpen(false)}
+            cafeName={settings?.cafe_name}
+          />
+        )}
 
-      <FloatingButtons
-        settings={settings}
-        scrolled={scrolled}
-        hidden={menuModalOpen}
-        onScrollToTop={scrollToTop}
-      />
+        <FloatingButtons
+          settings={settings}
+          scrolled={scrolled}
+          hidden={menuModalOpen}
+          onScrollToTop={scrollToTop}
+        />
+      </Suspense>
     </div>
   );
 }

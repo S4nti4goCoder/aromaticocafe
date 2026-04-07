@@ -49,6 +49,7 @@ export function Navbar({
             <img
               src={settings.logo_url}
               alt="Logo"
+              decoding="async"
               className="h-9 w-9 rounded-full object-cover transition-all group-hover:opacity-80"
               style={{ border: `2px solid ${CAFE.borderGold}` }}
             />

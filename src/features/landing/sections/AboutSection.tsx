@@ -92,6 +92,8 @@ export function AboutSection({ settings }: AboutSectionProps) {
               <img
                 src={settings.about_image_url}
                 alt="Sobre nosotros"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-125 object-cover rounded-3xl"
                 style={{ border: `1px solid ${CAFE.border}` }}
               />
