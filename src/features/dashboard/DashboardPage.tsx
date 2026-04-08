@@ -13,7 +13,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -216,19 +215,22 @@ export function DashboardPage() {
                   <Tooltip
                     cursor={{ className: "fill-muted/40" }}
                     contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
                       fontSize: 12,
+                      color: "var(--card-foreground)",
                     }}
-                    formatter={(value: number) => [
-                      formatCurrency(value),
+                    labelStyle={{ color: "var(--card-foreground)" }}
+                    itemStyle={{ color: "var(--card-foreground)" }}
+                    formatter={(value) => [
+                      formatCurrency(Number(value)),
                       "Ventas",
                     ]}
                   />
                   <Bar
                     dataKey="total"
-                    fill="hsl(var(--primary))"
+                    fill="#d4a847"
                     radius={[6, 6, 0, 0]}
                   />
                 </BarChart>
@@ -258,7 +260,10 @@ export function DashboardPage() {
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={stats?.topProducts}
+                  data={stats?.topProducts.map((p, i, arr) => ({
+                    ...p,
+                    fillOpacity: 1 - (i / Math.max(arr.length, 1)) * 0.55,
+                  }))}
                   layout="vertical"
                   margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
                 >
@@ -286,21 +291,24 @@ export function DashboardPage() {
                   <Tooltip
                     cursor={{ className: "fill-muted/40" }}
                     contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
                       fontSize: 12,
+                      color: "var(--card-foreground)",
                     }}
-                    formatter={(value: number, _name, item) => [
-                      `${value} und. · ${formatCurrency(item.payload.total)}`,
+                    labelStyle={{ color: "var(--card-foreground)" }}
+                    itemStyle={{ color: "var(--card-foreground)" }}
+                    formatter={(value, _name, item) => [
+                      `${value} und. · ${formatCurrency(Number(item.payload.total))}`,
                       "Vendidos",
                     ]}
                   />
-                  <Bar dataKey="quantity" radius={[0, 6, 6, 0]}>
-                    {stats?.topProducts.map((_, i) => (
-                      <Cell key={i} fill="hsl(var(--primary))" />
-                    ))}
-                  </Bar>
+                  <Bar
+                    dataKey="quantity"
+                    fill="#d4a847"
+                    radius={[0, 6, 6, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
