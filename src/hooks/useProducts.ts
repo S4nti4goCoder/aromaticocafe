@@ -125,6 +125,93 @@ export function useToggleProductActive() {
   });
 }
 
+export function useDuplicateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (product: Product) => {
+      const { data, error } = await supabase
+        .from("products")
+        .insert({
+          name: `${product.name} (copia)`,
+          description: product.description,
+          price: product.price,
+          discount_percentage: product.discount_percentage,
+          discount_price: product.discount_price,
+          category_id: product.category_id,
+          is_active: product.is_active,
+          image_url: product.image_url,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Producto duplicado");
+    },
+    onError: () => {
+      toast.error("Error al duplicar el producto");
+    },
+  });
+}
+
+export function useBulkUpdateProductsActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      is_active,
+    }: {
+      ids: string[];
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          is_active,
+          deactivated_by_category: false,
+          deactivated_by_stock: false,
+        })
+        .in("id", ids);
+      if (error) throw error;
+      return { count: ids.length, is_active };
+    },
+    onSuccess: ({ count, is_active }) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(
+        `${count} producto${count === 1 ? "" : "s"} ${is_active ? "activado" : "desactivado"}${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al actualizar los productos");
+    },
+  });
+}
+
+export function useBulkDeleteProducts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(
+        `${count} producto${count === 1 ? "" : "s"} eliminado${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al eliminar los productos");
+    },
+  });
+}
+
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
   return useMutation({
