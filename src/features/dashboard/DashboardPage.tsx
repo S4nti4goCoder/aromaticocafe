@@ -8,15 +8,24 @@ import {
   AlertTriangle,
   DollarSign,
   BarChart2,
+  Clock,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  Legend,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +45,7 @@ interface KPICardProps {
   icon: React.ElementType;
   color?: string;
   delay?: number;
+  changePct?: number | null;
 }
 
 function KPICard({
@@ -45,7 +55,10 @@ function KPICard({
   icon: Icon,
   color = "text-primary",
   delay = 0,
+  changePct,
 }: KPICardProps) {
+  const hasChange = changePct !== undefined && changePct !== null;
+  const isPositive = (changePct ?? 0) >= 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -58,7 +71,28 @@ function KPICard({
         <Icon className={`h-4 w-4 ${color}`} />
       </div>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+      <div className="flex items-center gap-2">
+        {hasChange && (
+          <span
+            className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+              isPositive
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            {isPositive ? "+" : ""}
+            {changePct.toFixed(1)}%
+          </span>
+        )}
+        {subtitle && (
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -97,7 +131,7 @@ export function DashboardPage() {
       </div>
 
       {/* KPIs principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KPICard
           title="Ventas hoy"
           value={formatCurrency(stats?.today.total ?? 0)}
@@ -113,6 +147,7 @@ export function DashboardPage() {
           icon={TrendingUp}
           color="text-blue-600 dark:text-blue-400"
           delay={0.05}
+          changePct={stats?.month.changePct ?? null}
         />
         <KPICard
           title="Ingresos netos"
@@ -127,11 +162,19 @@ export function DashboardPage() {
           delay={0.1}
         />
         <KPICard
+          title="Ticket promedio"
+          value={formatCurrency(stats?.month.avgTicket ?? 0)}
+          subtitle="Por venta · este mes"
+          icon={Receipt}
+          color="text-amber-600 dark:text-amber-400"
+          delay={0.15}
+        />
+        <KPICard
           title="Trabajadores activos"
           value={String(stats?.workers.active ?? 0)}
           subtitle="En turno"
           icon={Users}
-          delay={0.15}
+          delay={0.2}
         />
       </div>
 
@@ -310,6 +353,156 @@ export function DashboardPage() {
                     radius={[0, 6, 6, 0]}
                   />
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Ventas por hora + Métodos de pago */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.32 }}
+          className="rounded-lg border bg-card p-4 space-y-4 lg:col-span-2"
+        >
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-semibold">Ventas por hora</h3>
+            <span className="text-xs text-muted-foreground">(este mes)</span>
+          </div>
+          {(stats?.month.count ?? 0) === 0 ? (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+              No hay ventas este mes
+            </div>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={stats?.salesByHour}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="hourGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#d4a847" stopOpacity={0.6} />
+                      <stop
+                        offset="100%"
+                        stopColor="#d4a847"
+                        stopOpacity={0.05}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    dataKey="hour"
+                    tick={{ fontSize: 10 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                    interval={2}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) =>
+                      v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                    }
+                  />
+                  <Tooltip
+                    cursor={{ className: "fill-muted/40" }}
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "var(--card-foreground)",
+                    }}
+                    labelStyle={{ color: "var(--card-foreground)" }}
+                    itemStyle={{ color: "var(--card-foreground)" }}
+                    formatter={(value) => [
+                      formatCurrency(Number(value)),
+                      "Ventas",
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#d4a847"
+                    strokeWidth={2}
+                    fill="url(#hourGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.34 }}
+          className="rounded-lg border bg-card p-4 space-y-4"
+        >
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-semibold">Métodos de pago</h3>
+          </div>
+          {(stats?.paymentMethods.length ?? 0) === 0 ? (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+              No hay ventas este mes
+            </div>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "var(--card-foreground)",
+                    }}
+                    labelStyle={{ color: "var(--card-foreground)" }}
+                    itemStyle={{ color: "var(--card-foreground)" }}
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: 11 }}
+                  />
+                  <Pie
+                    data={stats?.paymentMethods}
+                    dataKey="total"
+                    nameKey="method"
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={2}
+                  >
+                    {stats?.paymentMethods.map((_, i) => {
+                      const palette = [
+                        "#d4a847",
+                        "#c8864a",
+                        "#8b6914",
+                        "#e8c76a",
+                      ];
+                      return (
+                        <Cell key={i} fill={palette[i % palette.length]} />
+                      );
+                    })}
+                  </Pie>
+                </PieChart>
               </ResponsiveContainer>
             </div>
           )}
