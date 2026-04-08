@@ -5,9 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  useProducts,
+  useDeleteProduct,
+  useToggleProductActive,
+} from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useActivePromotions } from "@/hooks/usePromotions";
 import { ProductFormModal } from "@/features/inventory/ProductFormModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import { Pagination } from "@/components/shared/Pagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -22,18 +34,56 @@ const formatCurrency = (amount: number) =>
 
 export function ProductsPage() {
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [modal, setModal] = useState<{
     open: boolean;
     product?: Product | null;
   }>({ open: false });
+  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
 
   const { data: products = [], isLoading } = useProducts();
   const { data: categories = [] } = useCategories();
+  const { data: activePromotions = [] } = useActivePromotions();
   const deleteProduct = useDeleteProduct();
+  const toggleActive = useToggleProductActive();
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  // Mapa de descuentos activos por producto (directo o vía categoría)
+  const productPromoMap = new Map<
+    string,
+    { type: string; value: number; name: string }
+  >();
+  for (const promo of activePromotions) {
+    if (promo.product_id) {
+      productPromoMap.set(promo.product_id, {
+        type: promo.type,
+        value: promo.value,
+        name: promo.name,
+      });
+    }
+  }
+  // Las de categoría se aplican como fallback a productos sin promo directa
+  const categoryPromoMap = new Map<
+    string,
+    { type: string; value: number; name: string }
+  >();
+  for (const promo of activePromotions) {
+    if (promo.category_id && !categoryPromoMap.has(promo.category_id)) {
+      categoryPromoMap.set(promo.category_id, {
+        type: promo.type,
+        value: promo.value,
+        name: promo.name,
+      });
+    }
+  }
+
+  const filtered = products.filter((p) => {
+    const matchesSearch = p.name
+      .toLowerCase()
+      .includes(search.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all" || p.category_id === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const {
     currentPage,
@@ -48,7 +98,7 @@ export function ProductsPage() {
 
   useEffect(() => {
     reset();
-  }, [search, reset]);
+  }, [search, categoryFilter, reset]);
 
   return (
     <div className="space-y-6">
@@ -67,14 +117,28 @@ export function ProductsPage() {
         </PermissionGuard>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar productos..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1 min-w-50">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar productos..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="rounded-md border bg-card px-3 py-2 text-sm cursor-pointer"
+        >
+          <option value="all">Todas las categorías</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {isLoading ? (
@@ -135,17 +199,70 @@ export function ProductsPage() {
                     <td className="px-4 py-3 font-medium">
                       {formatCurrency(product.price)}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {product.discount_percentage
-                        ? `${product.discount_percentage}%`
-                        : "—"}
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const promo =
+                          productPromoMap.get(product.id) ??
+                          (product.category_id
+                            ? categoryPromoMap.get(product.category_id)
+                            : undefined);
+                        if (!promo) {
+                          return (
+                            <span className="text-muted-foreground">—</span>
+                          );
+                        }
+                        const label =
+                          promo.type === "descuento_porcentaje"
+                            ? `${promo.value}%`
+                            : promo.type === "descuento_monto"
+                              ? formatCurrency(promo.value)
+                              : "2x1";
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-help border-green-500/40 text-green-600 dark:text-green-400"
+                                >
+                                  {label}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-medium">{promo.name}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={product.is_active ? "default" : "secondary"}
-                      >
-                        {product.is_active ? "Activo" : "Inactivo"}
-                      </Badge>
+                      <PermissionGuard module="inventory" action="can_edit">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={product.is_active}
+                          onClick={() =>
+                            toggleActive.mutate({
+                              id: product.id,
+                              is_active: !product.is_active,
+                            })
+                          }
+                          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                            product.is_active
+                              ? "border-green-500/30 bg-green-500/90 focus-visible:ring-green-500"
+                              : "border-border bg-muted focus-visible:ring-muted-foreground"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                              product.is_active
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </PermissionGuard>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
@@ -153,6 +270,7 @@ export function ProductsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="cursor-pointer"
                             onClick={() => setModal({ open: true, product })}
                           >
                             <Pencil className="h-4 w-4" />
@@ -162,8 +280,8 @@ export function ProductsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deleteProduct.mutate(product.id)}
+                            className="cursor-pointer text-destructive hover:text-destructive"
+                            onClick={() => setConfirmDelete(product)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -192,6 +310,27 @@ export function ProductsPage() {
         onClose={() => setModal({ open: false })}
         product={modal.product}
         categories={categories}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        title="Eliminar producto"
+        description={
+          confirmDelete
+            ? `¿Seguro que quieres eliminar "${confirmDelete.name}"? Esta acción no se puede deshacer.`
+            : ""
+        }
+        confirmLabel="Eliminar"
+        destructive
+        loading={deleteProduct.isPending}
+        onConfirm={() => {
+          if (confirmDelete) {
+            deleteProduct.mutate(confirmDelete.id, {
+              onSuccess: () => setConfirmDelete(null),
+            });
+          }
+        }}
       />
     </div>
   );

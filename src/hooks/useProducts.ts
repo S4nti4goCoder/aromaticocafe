@@ -94,6 +94,33 @@ export function useUpdateProduct() {
   });
 }
 
+export function useToggleProductActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_active, deactivated_by_category: false })
+        .eq("id", id);
+      if (error) throw error;
+      return is_active;
+    },
+    onSuccess: (is_active) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(is_active ? "Producto activado" : "Producto desactivado");
+    },
+    onError: () => {
+      toast.error("Error al cambiar el estado del producto");
+    },
+  });
+}
+
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
   return useMutation({
