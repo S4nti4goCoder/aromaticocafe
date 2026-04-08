@@ -36,6 +36,7 @@ export function useCreateProduct() {
           category_id: formData.category_id || null,
           is_active: formData.is_active,
           image_url: formData.image_url,
+          min_stock: formData.min_stock ? parseInt(formData.min_stock) : 5,
         })
         .select()
         .single();
@@ -77,6 +78,7 @@ export function useUpdateProduct() {
           category_id: formData.category_id || null,
           is_active: formData.is_active,
           image_url: formData.image_url,
+          min_stock: formData.min_stock ? parseInt(formData.min_stock) : 5,
         })
         .eq("id", id)
         .select()

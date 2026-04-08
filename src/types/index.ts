@@ -48,6 +48,7 @@ export interface Product {
   is_active: boolean;
   is_featured: boolean;
   sort_order: number;
+  min_stock: number;
   created_at: string;
   updated_at: string;
   category?: Category;
@@ -69,6 +70,7 @@ export interface ProductFormData {
   category_id: string;
   is_active: boolean;
   image_url: string | null;
+  min_stock: string;
 }
 
 export interface ProductStock {
@@ -78,6 +80,7 @@ export interface ProductStock {
   category_id: string | null;
   category_name: string | null;
   is_active: boolean;
+  min_stock: number;
   stock: number;
   last_movement: string | null;
 }

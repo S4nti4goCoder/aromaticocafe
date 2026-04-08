@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ import type { InventoryMovementType } from "@/types";
 interface StockMovementModalProps {
   open: boolean;
   onClose: () => void;
+  preselectedProductId?: string;
+  preselectedType?: InventoryMovementType;
 }
 
 interface FormData {
@@ -43,7 +46,12 @@ const defaultValues: FormData = {
   reason: "",
 };
 
-export function StockMovementModal({ open, onClose }: StockMovementModalProps) {
+export function StockMovementModal({
+  open,
+  onClose,
+  preselectedProductId,
+  preselectedType,
+}: StockMovementModalProps) {
   const updateStock = useUpdateStock();
   const { data: categories = [] } = useCategories();
   const { data: products = [] } = useProducts();
@@ -51,6 +59,20 @@ export function StockMovementModal({ open, onClose }: StockMovementModalProps) {
   const { register, handleSubmit, reset, control } = useForm<FormData>({
     defaultValues,
   });
+
+  useEffect(() => {
+    if (open) {
+      const product = preselectedProductId
+        ? products.find((p) => p.id === preselectedProductId)
+        : null;
+      reset({
+        ...defaultValues,
+        category_id: product?.category_id ?? "",
+        product_id: preselectedProductId ?? "",
+        type: preselectedType ?? "entrada",
+      });
+    }
+  }, [open, preselectedProductId, preselectedType, products, reset]);
 
   const selectedCategoryId = useWatch({ control, name: "category_id" });
   const selectedProductId = useWatch({ control, name: "product_id" });

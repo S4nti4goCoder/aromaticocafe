@@ -287,6 +287,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_featured: boolean
+          min_stock: number
           name: string
           price: number
           sort_order: number
@@ -304,6 +305,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          min_stock?: number
           name: string
           price?: number
           sort_order?: number
@@ -321,6 +323,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          min_stock?: number
           name?: string
           price?: number
           sort_order?: number
@@ -799,6 +802,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           last_movement: string | null
+          min_stock: number | null
           product_id: string | null
           product_name: string | null
           stock: number | null

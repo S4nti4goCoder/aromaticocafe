@@ -40,6 +40,7 @@ const defaultValues: ProductFormData = {
   category_id: "",
   is_active: true,
   image_url: null,
+  min_stock: "5",
 };
 
 export function ProductFormModal({
@@ -77,6 +78,7 @@ export function ProductFormModal({
         category_id: product.category_id ?? "",
         is_active: product.is_active,
         image_url: product.image_url,
+        min_stock: product.min_stock?.toString() ?? "5",
       });
       setImageUrl(product.image_url);
     } else {
@@ -158,6 +160,29 @@ export function ProductFormModal({
             />
             {errors.price && (
               <p className="text-xs text-destructive">{errors.price.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="min_stock">Stock mínimo</Label>
+            <Input
+              id="min_stock"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="5"
+              {...register("min_stock", {
+                min: { value: 0, message: "No puede ser negativo" },
+              })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Cuando el stock baje a este valor o menos, el producto aparecerá
+              como "Stock bajo".
+            </p>
+            {errors.min_stock && (
+              <p className="text-xs text-destructive">
+                {errors.min_stock.message}
+              </p>
             )}
           </div>
 
