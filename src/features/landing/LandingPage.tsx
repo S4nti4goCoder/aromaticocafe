@@ -32,11 +32,6 @@ const TestimonialsSection = lazy(() =>
     default: m.TestimonialsSection,
   })),
 );
-const ReservationBanner = lazy(() =>
-  import("./sections/ReservationBanner").then((m) => ({
-    default: m.ReservationBanner,
-  })),
-);
 const ContactSection = lazy(() =>
   import("./sections/ContactSection").then((m) => ({
     default: m.ContactSection,
@@ -193,10 +188,6 @@ export function LandingPage() {
 
         {settings?.testimonials && settings.testimonials.length > 0 && (
           <TestimonialsSection testimonials={settings.testimonials} />
-        )}
-
-        {settings?.reservation_title && (
-          <ReservationBanner settings={settings} />
         )}
 
         <ContactSection settings={settings} />
