@@ -148,14 +148,16 @@ export function CategoriesPage() {
                               is_active: !category.is_active,
                             })
                           }
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            category.is_active ? "bg-primary" : "bg-muted"
+                          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                            category.is_active
+                              ? "border-green-500/30 bg-green-500/90 focus-visible:ring-green-500"
+                              : "border-border bg-muted focus-visible:ring-muted-foreground"
                           }`}
                         >
                           <span
-                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
                               category.is_active
-                                ? "translate-x-5"
+                                ? "translate-x-6"
                                 : "translate-x-1"
                             }`}
                           />

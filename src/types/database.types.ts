@@ -278,6 +278,7 @@ export type Database = {
         Row: {
           category_id: string | null
           created_at: string
+          deactivated_by_category: boolean
           description: string | null
           discount_percentage: number | null
           discount_price: number | null
@@ -293,6 +294,7 @@ export type Database = {
         Insert: {
           category_id?: string | null
           created_at?: string
+          deactivated_by_category?: boolean
           description?: string | null
           discount_percentage?: number | null
           discount_price?: number | null
@@ -308,6 +310,7 @@ export type Database = {
         Update: {
           category_id?: string | null
           created_at?: string
+          deactivated_by_category?: boolean
           description?: string | null
           discount_percentage?: number | null
           discount_price?: number | null

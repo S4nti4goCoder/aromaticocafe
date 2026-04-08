@@ -45,14 +45,46 @@ export function useToggleCategoryActive() {
       id: string;
       is_active: boolean;
     }) => {
-      const { error } = await supabase
+      // 1. Actualizar la categoría
+      const { error: catError } = await supabase
         .from("categories")
         .update({ is_active })
         .eq("id", id);
-      if (error) throw error;
+      if (catError) throw catError;
+
+      // 2. Cascada con memoria sobre los productos
+      let affected = 0;
+      if (!is_active) {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: false, deactivated_by_category: true })
+          .eq("category_id", id)
+          .eq("is_active", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      } else {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: true, deactivated_by_category: false })
+          .eq("category_id", id)
+          .eq("deactivated_by_category", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      }
+
+      return { is_active, affected };
     },
-    onSuccess: () => {
+    onSuccess: ({ is_active, affected }) => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      const action = is_active ? "activada" : "desactivada";
+      const detail =
+        affected > 0
+          ? ` · ${affected} producto${affected === 1 ? "" : "s"} ${action}${affected === 1 ? "" : "s"} en cascada`
+          : "";
+      toast.success(`Categoría ${action}${detail}`);
     },
     onError: () => {
       toast.error("Error al cambiar el estado de la categoría");
