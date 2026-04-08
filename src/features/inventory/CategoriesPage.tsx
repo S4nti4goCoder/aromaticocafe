@@ -170,6 +170,7 @@ export function CategoriesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="cursor-pointer"
                             onClick={() => setModal({ open: true, category })}
                           >
                             <Pencil className="h-4 w-4" />
@@ -179,7 +180,7 @@ export function CategoriesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-destructive hover:text-destructive"
+                            className="cursor-pointer text-destructive hover:text-destructive"
                             onClick={() => setConfirmDelete(category)}
                           >
                             <Trash2 className="h-4 w-4" />
