@@ -106,7 +106,11 @@ export function useToggleProductActive() {
     }) => {
       const { error } = await supabase
         .from("products")
-        .update({ is_active, deactivated_by_category: false })
+        .update({
+          is_active,
+          deactivated_by_category: false,
+          deactivated_by_stock: false,
+        })
         .eq("id", id);
       if (error) throw error;
       return is_active;

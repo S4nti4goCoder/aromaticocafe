@@ -279,6 +279,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           deactivated_by_category: boolean
+          deactivated_by_stock: boolean
           description: string | null
           discount_percentage: number | null
           discount_price: number | null
@@ -295,6 +296,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           deactivated_by_category?: boolean
+          deactivated_by_stock?: boolean
           description?: string | null
           discount_percentage?: number | null
           discount_price?: number | null
@@ -311,6 +313,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           deactivated_by_category?: boolean
+          deactivated_by_stock?: boolean
           description?: string | null
           discount_percentage?: number | null
           discount_price?: number | null

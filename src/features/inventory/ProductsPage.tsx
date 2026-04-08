@@ -237,32 +237,54 @@ export function ProductsPage() {
                       })()}
                     </td>
                     <td className="px-4 py-3">
-                      <PermissionGuard module="inventory" action="can_edit">
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={product.is_active}
-                          onClick={() =>
-                            toggleActive.mutate({
-                              id: product.id,
-                              is_active: !product.is_active,
-                            })
-                          }
-                          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                            product.is_active
-                              ? "border-green-500/30 bg-green-500/90 focus-visible:ring-green-500"
-                              : "border-border bg-muted focus-visible:ring-muted-foreground"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                      <div className="flex items-center gap-2">
+                        <PermissionGuard module="inventory" action="can_edit">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={product.is_active}
+                            onClick={() =>
+                              toggleActive.mutate({
+                                id: product.id,
+                                is_active: !product.is_active,
+                              })
+                            }
+                            className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                               product.is_active
-                                ? "translate-x-6"
-                                : "translate-x-1"
+                                ? "border-green-500/30 bg-green-500/90 focus-visible:ring-green-500"
+                                : "border-border bg-muted focus-visible:ring-muted-foreground"
                             }`}
-                          />
-                        </button>
-                      </PermissionGuard>
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                                product.is_active
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </PermissionGuard>
+                        {product.deactivated_by_stock && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-help border-amber-500/40 text-amber-600 dark:text-amber-400"
+                                >
+                                  Sin stock
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  Desactivado automáticamente porque el stock
+                                  llegó a cero
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
