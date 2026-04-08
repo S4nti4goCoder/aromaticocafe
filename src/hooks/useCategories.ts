@@ -153,6 +153,113 @@ export function useUpdateCategory() {
   });
 }
 
+export function useDuplicateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (category: Category) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          name: `${category.name} (copia)`,
+          description: category.description,
+          is_active: category.is_active,
+          image_url: category.image_url,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Categoría duplicada");
+    },
+    onError: () => {
+      toast.error("Error al duplicar la categoría");
+    },
+  });
+}
+
+export function useBulkUpdateCategoriesActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      is_active,
+    }: {
+      ids: string[];
+      is_active: boolean;
+    }) => {
+      const { error: catError } = await supabase
+        .from("categories")
+        .update({ is_active })
+        .in("id", ids);
+      if (catError) throw catError;
+
+      let affected = 0;
+      if (!is_active) {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: false, deactivated_by_category: true })
+          .in("category_id", ids)
+          .eq("is_active", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      } else {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: true, deactivated_by_category: false })
+          .in("category_id", ids)
+          .eq("deactivated_by_category", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      }
+
+      return { count: ids.length, is_active, affected };
+    },
+    onSuccess: ({ count, is_active, affected }) => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      const action = is_active ? "activada" : "desactivada";
+      const detail =
+        affected > 0
+          ? ` · ${affected} producto${affected === 1 ? "" : "s"} en cascada`
+          : "";
+      toast.success(
+        `${count} categoría${count === 1 ? "" : "s"} ${action}${count === 1 ? "" : "s"}${detail}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al actualizar las categorías");
+    },
+  });
+}
+
+export function useBulkDeleteCategories() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(
+        `${count} categoría${count === 1 ? "" : "s"} eliminada${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al eliminar las categorías");
+    },
+  });
+}
+
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
   return useMutation({
