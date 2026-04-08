@@ -9,6 +9,16 @@ import {
   DollarSign,
   BarChart2,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardStats } from "@/hooks/useDashboard";
@@ -172,34 +182,57 @@ export function DashboardPage() {
           </div>
 
           {(stats?.salesChartData.length ?? 0) === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
               No hay ventas este mes
             </div>
           ) : (
-            <div className="space-y-2">
-              {(() => {
-                const maxVal = Math.max(
-                  ...(stats?.salesChartData.map((d) => d.total) ?? [1]),
-                );
-                return stats?.salesChartData.map((day, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="w-10 text-muted-foreground shrink-0">
-                      {day.date}
-                    </span>
-                    <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(day.total / maxVal) * 100}%` }}
-                        transition={{ delay: 0.3 + i * 0.05, duration: 0.5 }}
-                        className="h-full bg-primary rounded-full"
-                      />
-                    </div>
-                    <span className="w-20 text-right shrink-0 font-medium">
-                      {formatCurrency(day.total)}
-                    </span>
-                  </div>
-                ));
-              })()}
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={stats?.salesChartData}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) =>
+                      v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                    }
+                  />
+                  <Tooltip
+                    cursor={{ className: "fill-muted/40" }}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number) => [
+                      formatCurrency(value),
+                      "Ventas",
+                    ]}
+                  />
+                  <Bar
+                    dataKey="total"
+                    fill="hsl(var(--primary))"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           )}
         </motion.div>
@@ -218,37 +251,58 @@ export function DashboardPage() {
           </div>
 
           {(stats?.topProducts.length ?? 0) === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
               No hay ventas este mes
             </div>
           ) : (
-            <div className="space-y-3">
-              {stats?.topProducts.map((product, i) => {
-                const maxQty = stats.topProducts[0].quantity;
-                return (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-medium line-clamp-1 flex-1">
-                        {product.name}
-                      </span>
-                      <span className="text-muted-foreground ml-2 shrink-0">
-                        {product.quantity} und. ·{" "}
-                        {formatCurrency(product.total)}
-                      </span>
-                    </div>
-                    <div className="bg-muted rounded-full h-2 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${(product.quantity / maxQty) * 100}%`,
-                        }}
-                        transition={{ delay: 0.35 + i * 0.05, duration: 0.5 }}
-                        className="h-full bg-primary rounded-full"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={stats?.topProducts}
+                  layout="vertical"
+                  margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
+                    tickLine={false}
+                    axisLine={false}
+                    width={90}
+                  />
+                  <Tooltip
+                    cursor={{ className: "fill-muted/40" }}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number, _name, item) => [
+                      `${value} und. · ${formatCurrency(item.payload.total)}`,
+                      "Vendidos",
+                    ]}
+                  />
+                  <Bar dataKey="quantity" radius={[0, 6, 6, 0]}>
+                    {stats?.topProducts.map((_, i) => (
+                      <Cell key={i} fill="hsl(var(--primary))" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           )}
         </motion.div>
