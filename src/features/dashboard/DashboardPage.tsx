@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -11,7 +12,9 @@ import {
   Clock,
   CreditCard,
   Receipt,
+  RefreshCw,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Area,
   AreaChart,
@@ -29,7 +32,47 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useDashboardStats } from "@/hooks/useDashboard";
+import {
+  useDashboardStats,
+  type DateRange,
+  type DateRangeKey,
+} from "@/hooks/useDashboard";
+
+const RANGE_LABELS: Record<DateRangeKey, string> = {
+  today: "Hoy",
+  "7d": "7 días",
+  "30d": "30 días",
+  month: "Mes",
+  custom: "Personalizado",
+};
+
+function buildRange(key: DateRangeKey, customFrom?: string, customTo?: string): DateRange {
+  const now = new Date();
+  const to = new Date(now);
+  to.setHours(23, 59, 59, 999);
+  const from = new Date(now);
+  from.setHours(0, 0, 0, 0);
+
+  switch (key) {
+    case "today":
+      return { key, from, to };
+    case "7d":
+      from.setDate(from.getDate() - 6);
+      return { key, from, to };
+    case "30d":
+      from.setDate(from.getDate() - 29);
+      return { key, from, to };
+    case "month": {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      return { key, from: first, to };
+    }
+    case "custom": {
+      const f = customFrom ? new Date(customFrom + "T00:00:00") : from;
+      const t = customTo ? new Date(customTo + "T23:59:59") : to;
+      return { key, from: f, to: t };
+    }
+  }
+}
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-CO", {
@@ -98,7 +141,16 @@ function KPICard({
 }
 
 export function DashboardPage() {
-  const { data: stats, isLoading } = useDashboardStats();
+  const [rangeKey, setRangeKey] = useState<DateRangeKey>("month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const range = useMemo(
+    () => buildRange(rangeKey, customFrom, customTo),
+    [rangeKey, customFrom, customTo],
+  );
+  const { data: stats, isLoading, refetch, isFetching } =
+    useDashboardStats(range);
+  const periodLabel = RANGE_LABELS[rangeKey].toLowerCase();
 
   if (isLoading) {
     return (
@@ -118,16 +170,62 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Panel principal</h2>
-        <p className="text-muted-foreground text-sm">
-          {new Date().toLocaleDateString("es-CO", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Panel principal</h2>
+          <p className="text-muted-foreground text-sm">
+            {new Date().toLocaleDateString("es-CO", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-md border bg-card overflow-hidden">
+            {(Object.keys(RANGE_LABELS) as DateRangeKey[]).map((k) => (
+              <button
+                key={k}
+                onClick={() => setRangeKey(k)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  rangeKey === k
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {RANGE_LABELS[k]}
+              </button>
+            ))}
+          </div>
+          {rangeKey === "custom" && (
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="rounded-md border bg-card px-2 py-1 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">→</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="rounded-md border bg-card px-2 py-1 text-xs"
+              />
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+            />
+          </Button>
+        </div>
       </div>
 
       {/* KPIs principales */}
@@ -141,7 +239,7 @@ export function DashboardPage() {
           delay={0}
         />
         <KPICard
-          title="Ventas del mes"
+          title={`Ventas · ${RANGE_LABELS[rangeKey]}`}
           value={formatCurrency(stats?.month.total ?? 0)}
           subtitle={`${stats?.month.count ?? 0} transacciones`}
           icon={TrendingUp}
@@ -164,7 +262,7 @@ export function DashboardPage() {
         <KPICard
           title="Ticket promedio"
           value={formatCurrency(stats?.month.avgTicket ?? 0)}
-          subtitle="Por venta · este mes"
+          subtitle={`Por venta · ${periodLabel}`}
           icon={Receipt}
           color="text-amber-600 dark:text-amber-400"
           delay={0.15}
@@ -220,7 +318,7 @@ export function DashboardPage() {
         >
           <div className="flex items-center gap-2">
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-semibold">Ventas del mes</h3>
+            <h3 className="font-semibold">Ventas · {RANGE_LABELS[rangeKey]}</h3>
           </div>
 
           {(stats?.salesChartData.length ?? 0) === 0 ? (
@@ -292,7 +390,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-semibold">Productos más vendidos</h3>
-            <span className="text-xs text-muted-foreground">(este mes)</span>
+            <span className="text-xs text-muted-foreground">({periodLabel})</span>
           </div>
 
           {(stats?.topProducts.length ?? 0) === 0 ? (
@@ -370,7 +468,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-semibold">Ventas por hora</h3>
-            <span className="text-xs text-muted-foreground">(este mes)</span>
+            <span className="text-xs text-muted-foreground">({periodLabel})</span>
           </div>
           {(stats?.month.count ?? 0) === 0 ? (
             <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
@@ -516,7 +614,7 @@ export function DashboardPage() {
         transition={{ delay: 0.35 }}
         className="rounded-lg border bg-card p-4"
       >
-        <h3 className="font-semibold mb-4">Balance del mes</h3>
+        <h3 className="font-semibold mb-4">Balance · {RANGE_LABELS[rangeKey]}</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1">

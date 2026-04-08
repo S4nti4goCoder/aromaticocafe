@@ -1,72 +1,79 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
-export function useDashboardStats() {
-  return useQuery({
-    queryKey: ["dashboard_stats"],
-    queryFn: async () => {
-      const now = new Date();
+export type DateRangeKey = "today" | "7d" | "30d" | "month" | "custom";
 
-      // El navegador ya maneja la zona horaria local
-      // setHours(0,0,0,0) da medianoche en hora local → ya es correcto en UTC
-      const todayStart = new Date(now);
+export interface DateRange {
+  key: DateRangeKey;
+  from: Date;
+  to: Date;
+}
+
+export function useDashboardStats(range: DateRange) {
+  return useQuery({
+    queryKey: [
+      "dashboard_stats",
+      range.key,
+      range.from.toISOString(),
+      range.to.toISOString(),
+    ],
+    queryFn: async () => {
+      const fromISO = range.from.toISOString();
+      const toISO = range.to.toISOString();
+
+      const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const firstDayOfMonth = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        1,
-        0,
-        0,
-        0,
-        0,
-      );
+      // Comparación: solo cuando el rango es "month"
+      let prevPeriodSales: { total: number }[] | null = null;
+      if (range.key === "month") {
+        const now = new Date();
+        const firstDayOfPrevMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          1,
+          0,
+          0,
+          0,
+          0,
+        );
+        const sameDayPrevMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          now.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
+        const { data } = await supabase
+          .from("sales")
+          .select("total")
+          .gte("created_at", firstDayOfPrevMonth.toISOString())
+          .lte("created_at", sameDayPrevMonth.toISOString());
+        prevPeriodSales = data;
+      }
 
-      const firstDayOfPrevMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() - 1,
-        1,
-        0,
-        0,
-        0,
-        0,
-      );
-
-      // Ventas del mes anterior (mismo rango: día 1 → mismo día actual del mes pasado)
-      const sameDayPrevMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() - 1,
-        now.getDate(),
-        23,
-        59,
-        59,
-        999,
-      );
-
-      const { data: prevMonthSales } = await supabase
-        .from("sales")
-        .select("total")
-        .gte("created_at", firstDayOfPrevMonth.toISOString())
-        .lte("created_at", sameDayPrevMonth.toISOString());
-
-      // Ventas de hoy
+      // Ventas de hoy (siempre, independiente del rango)
       const { data: todaySales } = await supabase
         .from("sales")
         .select("total")
         .gte("created_at", todayStart.toISOString());
 
-      // Ventas del mes
-      const { data: monthSales } = await supabase
+      // Ventas del periodo seleccionado
+      const { data: periodSales } = await supabase
         .from("sales")
         .select("id, total, created_at, payment_method")
-        .gte("created_at", firstDayOfMonth.toISOString())
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
         .order("created_at", { ascending: true });
 
-      // Transacciones del mes
-      const { data: monthTransactions } = await supabase
+      // Transacciones del periodo
+      const { data: periodTransactions } = await supabase
         .from("transactions")
         .select("type, amount")
-        .gte("created_at", firstDayOfMonth.toISOString());
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO);
 
       // Stock bajo
       const { data: lowStock } = await supabase
@@ -87,40 +94,39 @@ export function useDashboardStats() {
         .select("*", { count: "exact", head: true })
         .eq("status", "activo");
 
-      // Items de ventas del mes
-      const monthSaleIds = monthSales?.map((s) => s.id) ?? [];
-      const { data: monthItems } =
-        monthSaleIds.length > 0
+      // Items de ventas del periodo
+      const periodSaleIds = periodSales?.map((s) => s.id) ?? [];
+      const { data: periodItems } =
+        periodSaleIds.length > 0
           ? await supabase
               .from("sale_items")
               .select("product_name, quantity, subtotal")
-              .in("sale_id", monthSaleIds)
+              .in("sale_id", periodSaleIds)
           : { data: [] };
 
-      // Calcular KPIs
+      // KPIs
       const todayTotal =
         todaySales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0;
       const todayCount = todaySales?.length ?? 0;
 
-      const monthTotal =
-        monthSales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0;
-      const monthCount = monthSales?.length ?? 0;
+      const periodTotal =
+        periodSales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0;
+      const periodCount = periodSales?.length ?? 0;
 
-      const monthIngresos =
-        monthTransactions
+      const periodIngresos =
+        periodTransactions
           ?.filter((t) => t.type === "ingreso")
           .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
 
-      const monthEgresos =
-        monthTransactions
+      const periodEgresos =
+        periodTransactions
           ?.filter((t) => t.type === "egreso")
           .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
 
       // Ventas por día para gráfico
       const salesByDay: Record<string, number> = {};
-      monthSales?.forEach((sale) => {
+      periodSales?.forEach((sale) => {
         const date = new Date(sale.created_at);
-        // Convertir a hora local para agrupar por día correcto
         const localDate = new Date(
           date.getTime() - date.getTimezoneOffset() * 60000,
         );
@@ -143,7 +149,7 @@ export function useDashboardStats() {
         string,
         { name: string; quantity: number; total: number }
       > = {};
-      monthItems?.forEach((item) => {
+      periodItems?.forEach((item) => {
         if (!productSales[item.product_name]) {
           productSales[item.product_name] = {
             name: item.product_name,
@@ -159,13 +165,12 @@ export function useDashboardStats() {
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 5);
 
-      // Ticket promedio del mes
-      const avgTicket = monthCount > 0 ? monthTotal / monthCount : 0;
+      const avgTicket = periodCount > 0 ? periodTotal / periodCount : 0;
 
-      // Ventas por hora del día (este mes, agrupadas por hora local)
+      // Ventas por hora del día
       const salesByHour: Record<number, number> = {};
       for (let h = 0; h < 24; h++) salesByHour[h] = 0;
-      monthSales?.forEach((sale) => {
+      periodSales?.forEach((sale) => {
         const h = new Date(sale.created_at).getHours();
         salesByHour[h] += Number(sale.total);
       });
@@ -174,37 +179,38 @@ export function useDashboardStats() {
         total,
       }));
 
-      // Métodos de pago (este mes)
+      // Métodos de pago
       const paymentTotals: Record<string, number> = {};
-      monthSales?.forEach((sale) => {
+      periodSales?.forEach((sale) => {
         const method = sale.payment_method || "otro";
-        paymentTotals[method] = (paymentTotals[method] ?? 0) + Number(sale.total);
+        paymentTotals[method] =
+          (paymentTotals[method] ?? 0) + Number(sale.total);
       });
       const paymentMethodsData = Object.entries(paymentTotals).map(
         ([method, total]) => ({ method, total }),
       );
 
-      const prevMonthTotal =
-        prevMonthSales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0;
+      const prevPeriodTotal =
+        prevPeriodSales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0;
 
-      const monthChangePct =
-        prevMonthTotal > 0
-          ? ((monthTotal - prevMonthTotal) / prevMonthTotal) * 100
+      const periodChangePct =
+        range.key === "month" && prevPeriodTotal > 0
+          ? ((periodTotal - prevPeriodTotal) / prevPeriodTotal) * 100
           : null;
 
       return {
         today: { total: todayTotal, count: todayCount },
         month: {
-          total: monthTotal,
-          count: monthCount,
-          prevTotal: prevMonthTotal,
-          changePct: monthChangePct,
+          total: periodTotal,
+          count: periodCount,
+          prevTotal: prevPeriodTotal,
+          changePct: periodChangePct,
           avgTicket,
         },
         balance: {
-          ingresos: monthIngresos,
-          egresos: monthEgresos,
-          net: monthIngresos - monthEgresos,
+          ingresos: periodIngresos,
+          egresos: periodEgresos,
+          net: periodIngresos - periodEgresos,
         },
         stock: {
           low: lowStock?.length ?? 0,
