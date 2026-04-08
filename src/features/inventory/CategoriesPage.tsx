@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
+import {
+  useCategories,
+  useCategoryProductCounts,
+  useDeleteCategory,
+  useToggleCategoryActive,
+} from "@/hooks/useCategories";
 import { CategoryFormModal } from "@/features/inventory/CategoryFormModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import { Pagination } from "@/components/shared/Pagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -18,9 +24,12 @@ export function CategoriesPage() {
     open: boolean;
     category?: Category | null;
   }>({ open: false });
+  const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
 
   const { data: categories = [], isLoading } = useCategories();
+  const { data: productCounts = {} } = useCategoryProductCounts();
   const deleteCategory = useDeleteCategory();
+  const toggleActive = useToggleCategoryActive();
 
   const filtered = categories.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
@@ -91,6 +100,7 @@ export function CategoriesPage() {
                   <th className="text-left px-4 py-3 font-medium">
                     Descripción
                   </th>
+                  <th className="text-left px-4 py-3 font-medium">Productos</th>
                   <th className="text-left px-4 py-3 font-medium">Estado</th>
                   <th className="text-right px-4 py-3 font-medium">Acciones</th>
                 </tr>
@@ -122,11 +132,35 @@ export function CategoriesPage() {
                       {category.description ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={category.is_active ? "default" : "secondary"}
-                      >
-                        {category.is_active ? "Activa" : "Inactiva"}
+                      <Badge variant="outline">
+                        {productCounts[category.id] ?? 0}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <PermissionGuard module="inventory" action="can_edit">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={category.is_active}
+                          onClick={() =>
+                            toggleActive.mutate({
+                              id: category.id,
+                              is_active: !category.is_active,
+                            })
+                          }
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            category.is_active ? "bg-primary" : "bg-muted"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              category.is_active
+                                ? "translate-x-5"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </PermissionGuard>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
@@ -144,7 +178,7 @@ export function CategoriesPage() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => deleteCategory.mutate(category.id)}
+                            onClick={() => setConfirmDelete(category)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -172,6 +206,31 @@ export function CategoriesPage() {
         open={modal.open}
         onClose={() => setModal({ open: false })}
         category={modal.category}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        title="Eliminar categoría"
+        description={
+          confirmDelete
+            ? `¿Seguro que quieres eliminar "${confirmDelete.name}"? ${
+                (productCounts[confirmDelete.id] ?? 0) > 0
+                  ? `Esta categoría tiene ${productCounts[confirmDelete.id]} producto(s) asociado(s).`
+                  : "Esta acción no se puede deshacer."
+              }`
+            : ""
+        }
+        confirmLabel="Eliminar"
+        destructive
+        loading={deleteCategory.isPending}
+        onConfirm={() => {
+          if (confirmDelete) {
+            deleteCategory.mutate(confirmDelete.id, {
+              onSuccess: () => setConfirmDelete(null),
+            });
+          }
+        }}
       />
     </div>
   );
