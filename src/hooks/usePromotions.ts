@@ -126,6 +126,118 @@ export function useUpdatePromotion() {
   });
 }
 
+export function useTogglePromotionActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("promotions")
+        .update({ is_active })
+        .eq("id", id);
+      if (error) throw error;
+      return is_active;
+    },
+    onSuccess: (is_active) => {
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
+      toast.success(`Promoción ${is_active ? "activada" : "desactivada"}`);
+    },
+    onError: () => {
+      toast.error("Error al actualizar la promoción");
+    },
+  });
+}
+
+export function useDuplicatePromotion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (promotion: Promotion) => {
+      const { data, error } = await supabase
+        .from("promotions")
+        .insert({
+          name: `${promotion.name} (copia)`,
+          description: promotion.description,
+          type: promotion.type,
+          value: promotion.value,
+          applies_to: promotion.applies_to,
+          product_id: promotion.product_id,
+          category_id: promotion.category_id,
+          is_active: promotion.is_active,
+          starts_at: promotion.starts_at,
+          ends_at: promotion.ends_at,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
+      toast.success("Promoción duplicada");
+    },
+    onError: () => {
+      toast.error("Error al duplicar la promoción");
+    },
+  });
+}
+
+export function useBulkUpdatePromotionsActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      is_active,
+    }: {
+      ids: string[];
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("promotions")
+        .update({ is_active })
+        .in("id", ids);
+      if (error) throw error;
+      return { count: ids.length, is_active };
+    },
+    onSuccess: ({ count, is_active }) => {
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
+      toast.success(
+        `${count} promoción${count === 1 ? "" : "es"} ${is_active ? "activada" : "desactivada"}${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al actualizar las promociones");
+    },
+  });
+}
+
+export function useBulkDeletePromotions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("promotions")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
+      toast.success(
+        `${count} promoción${count === 1 ? "" : "es"} eliminada${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al eliminar las promociones");
+    },
+  });
+}
+
 export function useDeletePromotion() {
   const queryClient = useQueryClient();
 
