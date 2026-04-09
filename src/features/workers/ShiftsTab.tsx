@@ -359,7 +359,7 @@ export function ShiftsTab() {
         <Skeleton className="h-64 w-full rounded-lg" />
       ) : (
         <div className="rounded-lg border overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+          <table className="w-full text-sm min-w-175">
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-left px-3 py-2 font-medium w-40">
