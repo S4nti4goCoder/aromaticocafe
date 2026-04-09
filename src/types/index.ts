@@ -279,6 +279,10 @@ export interface Sale {
   payment_method: PaymentMethod;
   notes: string | null;
   created_at: string;
+  is_voided: boolean;
+  void_reason: string | null;
+  voided_at: string | null;
+  voided_by: string | null;
   items?: SaleItem[];
 }
 

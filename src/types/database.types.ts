@@ -506,33 +506,45 @@ export type Database = {
           created_at: string
           discount: number
           id: string
+          is_voided: boolean
           notes: string | null
           payment_method: string
           sale_number: number | null
           seller_id: string | null
           total: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           cash_register_id?: string | null
           created_at?: string
           discount?: number
           id?: string
+          is_voided?: boolean
           notes?: string | null
           payment_method?: string
           sale_number?: number | null
           seller_id?: string | null
           total?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           cash_register_id?: string | null
           created_at?: string
           discount?: number
           id?: string
+          is_voided?: boolean
           notes?: string | null
           payment_method?: string
           sale_number?: number | null
           seller_id?: string | null
           total?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {

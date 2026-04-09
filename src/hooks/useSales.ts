@@ -119,6 +119,79 @@ export function useCreateSale() {
   });
 }
 
+export function useVoidSale() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sale,
+      reason,
+    }: {
+      sale: Sale;
+      reason: string;
+    }) => {
+      if (sale.is_voided) {
+        throw new Error("La venta ya está anulada");
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // 1. Marcar la venta como anulada
+      const { error: updateError } = await supabase
+        .from("sales")
+        .update({
+          is_voided: true,
+          void_reason: reason,
+          voided_at: new Date().toISOString(),
+          voided_by: user?.id ?? null,
+        })
+        .eq("id", sale.id);
+      if (updateError) throw updateError;
+
+      // 2. Devolver stock por cada item (entrada)
+      if (sale.items && sale.items.length > 0) {
+        for (const item of sale.items) {
+          if (!item.product_id) continue;
+          await supabase.rpc("update_product_stock", {
+            p_product_id: item.product_id,
+            p_type: "entrada",
+            p_quantity: item.quantity,
+            p_reason: `Anulación venta #${sale.id.slice(0, 8)}`,
+          });
+        }
+      }
+
+      // 3. Registrar egreso compensatorio
+      if (sale.cash_register_id) {
+        await supabase.from("transactions").insert({
+          cash_register_id: sale.cash_register_id,
+          type: "egreso",
+          amount: sale.total,
+          category: "Anulación de venta",
+          payment_method: sale.payment_method,
+          registered_by: user?.id ?? null,
+          description: `Anulación venta #${sale.id.slice(0, 8)} — ${reason}`,
+        });
+      }
+
+      return sale.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["product_stock"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_movements"] });
+      queryClient.invalidateQueries({ queryKey: ["cash_register"] });
+      toast.success("Venta anulada correctamente");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Error al anular la venta");
+    },
+  });
+}
+
 export function useDeleteSale() {
   const queryClient = useQueryClient();
 

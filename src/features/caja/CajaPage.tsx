@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Search,
   Plus,
@@ -12,12 +13,18 @@ import {
   Loader2,
   Receipt,
   X,
+  History,
+  Ban,
+  Printer,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +46,8 @@ import {
   useOpenCashRegister,
   useCloseCashRegister,
 } from "@/hooks/useAccounting";
-import { useTodaySales, useCreateSale } from "@/hooks/useSales";
+import { useTodaySales, useCreateSale, useVoidSale } from "@/hooks/useSales";
+import { useProductStock } from "@/hooks/useInventory";
 import { useActivePromotions } from "@/hooks/usePromotions";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { ReceiptModal } from "@/features/caja/ReceiptModal";
@@ -68,16 +76,29 @@ export function CajaPage() {
   const [lastCartItems, setLastCartItems] = useState<CartItem[]>([]);
   const [openingAmount, setOpeningAmount] = useState("");
   const [closingAmount, setClosingAmount] = useState("");
+  const [voidModal, setVoidModal] = useState<Sale | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [historyReceiptSale, setHistoryReceiptSale] = useState<Sale | null>(
+    null,
+  );
 
   const { data: cashRegister, isLoading: loadingCash } = useTodayCashRegister();
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: categories = [] } = useCategories();
   const { data: todaySales = [] } = useTodaySales(cashRegister?.id);
+  const { data: productStock = [] } = useProductStock();
   const { data: activePromotions = [] } = useActivePromotions();
   const { settings: systemSettings } = useSystemSettings();
   const openCash = useOpenCashRegister();
   const closeCash = useCloseCashRegister();
   const createSale = useCreateSale();
+  const voidSale = useVoidSale();
+
+  const stockMap = new Map(
+    productStock.map((s) => [s.product_id, s.stock]),
+  );
+  const getStock = (productId: string) =>
+    stockMap.get(productId) ?? Number.POSITIVE_INFINITY;
 
   const IVA_RATE = systemSettings?.tax_enabled
     ? (systemSettings.tax_percentage ?? 8) / 100
@@ -128,6 +149,21 @@ export function CajaPage() {
   };
 
   const addToCart = (product: (typeof products)[0]) => {
+    // Validación de stock
+    const available = getStock(product.id);
+    const inCartQty =
+      cart.find((i) => i.product_id === product.id)?.quantity ?? 0;
+    if (available <= 0) {
+      toast.error(`${product.name} está agotado`);
+      return;
+    }
+    if (inCartQty + 1 > available) {
+      toast.warning(
+        `Solo quedan ${available} unidades de ${product.name} en stock`,
+      );
+      return;
+    }
+
     const basePrice =
       product.discount_price ??
       (product.discount_percentage
@@ -173,6 +209,18 @@ export function CajaPage() {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
+    if (delta > 0) {
+      const available = getStock(productId);
+      const current =
+        cart.find((i) => i.product_id === productId)?.quantity ?? 0;
+      if (current + delta > available) {
+        toast.warning(
+          `Solo quedan ${available} unidades de ${product.name} en stock`,
+        );
+        return;
+      }
+    }
+
     const promo = getPromoForProduct(product);
     const basePrice =
       product.discount_price ??
@@ -213,7 +261,8 @@ export function CajaPage() {
     return sum + (product.price * item.quantity - item.subtotal);
   }, 0);
 
-  const todayTotal = todaySales.reduce((sum, s) => sum + s.total, 0);
+  const validSales = todaySales.filter((s) => !s.is_voided);
+  const todayTotal = validSales.reduce((sum, s) => sum + s.total, 0);
 
   const handleOpenCash = async () => {
     if (!openingAmount) return;
@@ -325,7 +374,20 @@ export function CajaPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        <Tabs defaultValue="pos" className="flex-1 flex flex-col min-h-0">
+          <TabsList>
+            <TabsTrigger value="pos" className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Punto de venta
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-2">
+              <History className="h-4 w-4" />
+              Historial ({todaySales.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pos" className="flex-1 mt-4 min-h-0">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
           {/* Productos */}
           <div className="lg:col-span-2 flex flex-col space-y-3">
             <div className="flex gap-2">
@@ -372,15 +434,21 @@ export function CajaPage() {
                   const price = getProductPrice(product);
                   const promo = getPromoForProduct(product);
                   const inCart = cart.find((i) => i.product_id === product.id);
+                  const stock = getStock(product.id);
+                  const isOutOfStock = stock <= 0;
+                  const isLowStock = stock > 0 && stock <= 5;
 
                   return (
                     <motion.button
                       key={product.id}
-                      whileTap={{ scale: 0.97 }}
+                      whileTap={isOutOfStock ? {} : { scale: 0.97 }}
                       onClick={() => addToCart(product)}
+                      disabled={isOutOfStock}
                       className={cn(
                         "relative rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary",
                         inCart ? "border-primary bg-primary/5" : "",
+                        isOutOfStock &&
+                          "opacity-50 cursor-not-allowed hover:border-border",
                       )}
                     >
                       {product.image_url && (
@@ -406,11 +474,26 @@ export function CajaPage() {
                           {promo.type === "2x1" ? "2x1" : "Promo"}
                         </Badge>
                       )}
-                      {inCart && (
+                      {inCart && !isOutOfStock && (
                         <Badge className="absolute top-2 right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
                           {inCart.quantity}
                         </Badge>
                       )}
+                      {isOutOfStock ? (
+                        <Badge
+                          variant="destructive"
+                          className="absolute top-2 right-2 text-xs"
+                        >
+                          Sin stock
+                        </Badge>
+                      ) : isLowStock ? (
+                        <Badge
+                          variant="outline"
+                          className="absolute bottom-2 right-2 text-[10px] px-1 py-0 border-amber-500 text-amber-600"
+                        >
+                          {stock} und.
+                        </Badge>
+                      ) : null}
                     </motion.button>
                   );
                 })}
@@ -596,6 +679,107 @@ export function CajaPage() {
             </div>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent
+            value="history"
+            className="flex-1 mt-4 min-h-0 overflow-y-auto"
+          >
+            {todaySales.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <History className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Aún no hay ventas registradas hoy</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {todaySales.map((sale) => {
+                  const isVoided = sale.is_voided;
+                  return (
+                    <div
+                      key={sale.id}
+                      className={cn(
+                        "rounded-lg border bg-card p-3 flex items-start justify-between gap-3",
+                        isVoided && "opacity-60",
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p
+                            className={cn(
+                              "font-medium text-sm",
+                              isVoided && "line-through",
+                            )}
+                          >
+                            Venta #
+                            {sale.sale_number ?? sale.id.slice(0, 8)}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(sale.created_at).toLocaleTimeString(
+                              "es-CO",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {sale.payment_method}
+                          </Badge>
+                          {isVoided && (
+                            <Badge variant="destructive" className="text-xs">
+                              Anulada
+                            </Badge>
+                          )}
+                        </div>
+                        <p
+                          className={cn(
+                            "text-lg font-bold text-primary mt-1",
+                            isVoided && "line-through",
+                          )}
+                        >
+                          {formatCurrency(sale.total)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {sale.items?.length ?? 0} producto
+                          {(sale.items?.length ?? 0) === 1 ? "" : "s"}
+                        </p>
+                        {isVoided && sale.void_reason && (
+                          <div className="mt-2 flex items-start gap-1 text-xs text-destructive">
+                            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                            <span>{sale.void_reason}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setHistoryReceiptSale(sale)}
+                        >
+                          <Printer className="h-3 w-3 mr-1" />
+                          Recibo
+                        </Button>
+                        {!isVoided && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setVoidReason("");
+                              setVoidModal(sale);
+                            }}
+                          >
+                            <Ban className="h-3 w-3 mr-1" />
+                            Anular
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Modal abrir caja */}
@@ -857,6 +1041,106 @@ export function CajaPage() {
         cartItems={lastCartItems}
         promotions={activePromotions}
       />
+
+      {/* Modal reimpresión desde historial */}
+      <ReceiptModal
+        open={!!historyReceiptSale}
+        onClose={() => setHistoryReceiptSale(null)}
+        sale={historyReceiptSale}
+        cartItems={
+          historyReceiptSale?.items?.map((it) => ({
+            product_id: it.product_id ?? "",
+            product_name: it.product_name,
+            product_price: it.product_price,
+            quantity: it.quantity,
+            subtotal: it.subtotal,
+          })) ?? []
+        }
+        promotions={activePromotions}
+      />
+
+      {/* Anular venta */}
+      <Dialog
+        open={!!voidModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVoidModal(null);
+            setVoidReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-destructive/10 p-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <DialogTitle>Anular venta</DialogTitle>
+            </div>
+            <DialogDescription className="pt-2">
+              Marca la venta como anulada, devuelve el stock al inventario y
+              registra un egreso compensatorio. No se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          {voidModal && (
+            <div className="rounded-lg border bg-muted/30 p-2 text-xs space-y-0.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Venta</span>
+                <span className="font-medium">
+                  #{voidModal.sale_number ?? voidModal.id.slice(0, 8)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-bold text-primary">
+                  {formatCurrency(voidModal.total)}
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Motivo de anulación *</Label>
+            <Textarea
+              placeholder="Ej: Producto devuelto, cobro duplicado..."
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setVoidModal(null);
+                setVoidReason("");
+              }}
+              disabled={voidSale.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              disabled={!voidReason.trim() || voidSale.isPending}
+              onClick={async () => {
+                if (!voidModal || !voidReason.trim()) return;
+                await voidSale.mutateAsync({
+                  sale: voidModal,
+                  reason: voidReason.trim(),
+                });
+                setVoidModal(null);
+                setVoidReason("");
+              }}
+            >
+              {voidSale.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Anular venta
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
