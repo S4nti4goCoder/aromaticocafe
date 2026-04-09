@@ -96,6 +96,99 @@ export function useUpdateWorker() {
   });
 }
 
+export function useBulkUpdateWorkerStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      status,
+      reason,
+    }: {
+      ids: string[];
+      status: "activo" | "inactivo" | "vacaciones";
+      reason?: string;
+    }) => {
+      const update: Record<string, unknown> = { status };
+      if (reason) update.notes = reason;
+      const { error } = await supabase
+        .from("workers")
+        .update(update)
+        .in("id", ids);
+      if (error) throw error;
+      return { count: ids.length, status };
+    },
+    onSuccess: ({ count, status }) => {
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      const label =
+        status === "activo"
+          ? "activado"
+          : status === "vacaciones"
+            ? "puesto en vacaciones"
+            : "desactivado";
+      toast.success(
+        `${count} trabajador${count === 1 ? "" : "es"} ${label}${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al actualizar los trabajadores");
+    },
+  });
+}
+
+export function useBulkDeleteWorkers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      for (const id of ids) {
+        const { error } = await supabase.rpc("delete_worker_account", {
+          worker_id: id,
+        });
+        if (error) throw error;
+      }
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      toast.success(
+        `${count} trabajador${count === 1 ? "" : "es"} eliminado${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al eliminar los trabajadores");
+    },
+  });
+}
+
+export function useUpdateWorkerStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      reason,
+    }: {
+      id: string;
+      status: "activo" | "inactivo" | "vacaciones";
+      reason?: string;
+    }) => {
+      const update: Record<string, unknown> = { status };
+      if (reason) update.notes = reason;
+      const { error } = await supabase
+        .from("workers")
+        .update(update)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      toast.success("Estado actualizado");
+    },
+    onError: () => {
+      toast.error("Error al actualizar el estado");
+    },
+  });
+}
+
 export function useDeleteWorker() {
   const queryClient = useQueryClient();
   return useMutation({
