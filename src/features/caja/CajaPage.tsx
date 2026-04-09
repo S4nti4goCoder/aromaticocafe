@@ -19,6 +19,12 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ArrowLeftRight,
+  PauseCircle,
+  PlayCircle,
+  User,
+  Star,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +53,8 @@ import {
   useTodayCashRegister,
   useOpenCashRegister,
   useCloseCashRegister,
+  useCreateTransaction,
+  useTransactions,
 } from "@/hooks/useAccounting";
 import { useTodaySales, useCreateSale, useVoidSale } from "@/hooks/useSales";
 import { useProductStock } from "@/hooks/useInventory";
@@ -54,7 +62,38 @@ import { useActivePromotions } from "@/hooks/usePromotions";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { ReceiptModal } from "@/features/caja/ReceiptModal";
 import { cn } from "@/lib/utils";
-import type { CartItem, PaymentMethod, Promotion, Sale } from "@/types";
+import type {
+  CartItem,
+  PaymentMethod,
+  Promotion,
+  Sale,
+  TransactionType,
+} from "@/types";
+
+// ── Parking (pedidos en espera) ───────────────────────────
+const PARKING_KEY = "caja_parked_orders_v1";
+interface ParkedOrder {
+  id: string;
+  name: string;
+  cart: CartItem[];
+  createdAt: string;
+}
+const loadParked = (): ParkedOrder[] => {
+  try {
+    const raw = localStorage.getItem(PARKING_KEY);
+    return raw ? (JSON.parse(raw) as ParkedOrder[]) : [];
+  } catch {
+    return [];
+  }
+};
+const saveParked = (orders: ParkedOrder[]) => {
+  localStorage.setItem(PARKING_KEY, JSON.stringify(orders));
+};
+
+// ── Denominaciones COP ────────────────────────────────────
+const DENOMINATIONS = [
+  100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50,
+];
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-CO", {
@@ -90,6 +129,29 @@ export function CajaPage() {
     null,
   );
 
+  // Cliente opcional
+  const [showCustomer, setShowCustomer] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+
+  // Parking
+  const [parkedOrders, setParkedOrders] = useState<ParkedOrder[]>(loadParked);
+  const [parkingModal, setParkingModal] = useState(false);
+  const [parkName, setParkName] = useState("");
+  const [parkSaveModal, setParkSaveModal] = useState(false);
+
+  // Movimientos manuales
+  const [movementModal, setMovementModal] = useState(false);
+  const [movementType, setMovementType] = useState<TransactionType>("egreso");
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementCategory, setMovementCategory] = useState("");
+  const [movementDescription, setMovementDescription] = useState("");
+
+  // Arqueo desglosado
+  const [denominations, setDenominations] = useState<Record<number, string>>(
+    {},
+  );
+
   const { data: cashRegister, isLoading: loadingCash } = useTodayCashRegister();
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: categories = [] } = useCategories();
@@ -101,6 +163,13 @@ export function CajaPage() {
   const closeCash = useCloseCashRegister();
   const createSale = useCreateSale();
   const voidSale = useVoidSale();
+  const createTransaction = useCreateTransaction();
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { data: todayTransactions = [] } = useTransactions({
+    startDate: todayStart.toISOString(),
+  });
 
   const stockMap = new Map(
     productStock.map((s) => [s.product_id, s.stock]),
@@ -286,6 +355,53 @@ export function CajaPage() {
   const validSales = todaySales.filter((s) => !s.is_voided);
   const todayTotal = validSales.reduce((sum, s) => sum + s.total, 0);
 
+  // Top productos del día
+  const topProductIds = (() => {
+    const counts = new Map<string, number>();
+    validSales.forEach((s) =>
+      s.items?.forEach((it) => {
+        if (!it.product_id) return;
+        counts.set(it.product_id, (counts.get(it.product_id) ?? 0) + it.quantity);
+      }),
+    );
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id]) => id);
+  })();
+  const topProducts = topProductIds
+    .map((id) => products.find((p) => p.id === id))
+    .filter((p): p is (typeof products)[0] => !!p && p.is_active);
+
+  // Resumen de cierre
+  const salesByMethod = validSales.reduce<Record<string, number>>(
+    (acc, s) => {
+      acc[s.payment_method] = (acc[s.payment_method] ?? 0) + s.total;
+      return acc;
+    },
+    {},
+  );
+  const totalDiscounts = validSales.reduce((sum, s) => sum + (s.discount ?? 0), 0);
+  const voidedCount = todaySales.filter((s) => s.is_voided).length;
+  const todayIngresos = todayTransactions
+    .filter((t) => t.type === "ingreso")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const todayEgresos = todayTransactions
+    .filter((t) => t.type === "egreso")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const expectedInCash =
+    (cashRegister?.opening_amount ?? 0) +
+    (salesByMethod.efectivo ?? 0) +
+    todayIngresos -
+    todayEgresos;
+
+  // Arqueo desglosado total
+  const denomTotal = DENOMINATIONS.reduce(
+    (sum, d) => sum + d * (parseInt(denominations[d] || "0") || 0),
+    0,
+  );
+  const denomDiff = denomTotal - expectedInCash;
+
   const handleOpenCash = async () => {
     if (!openingAmount) return;
     await openCash.mutateAsync({ opening_amount: parseFloat(openingAmount) });
@@ -294,12 +410,23 @@ export function CajaPage() {
   };
 
   const handleCloseCash = async () => {
-    if (!cashRegister || !closingAmount) return;
+    if (!cashRegister) return;
+    const finalAmount = denomTotal > 0 ? denomTotal : parseFloat(closingAmount);
+    if (!finalAmount && finalAmount !== 0) return;
+    const denomNote =
+      denomTotal > 0
+        ? "Arqueo: " +
+          DENOMINATIONS.filter((d) => parseInt(denominations[d] || "0") > 0)
+            .map((d) => `${formatCurrency(d)}×${denominations[d]}`)
+            .join(", ")
+        : undefined;
     await closeCash.mutateAsync({
       id: cashRegister.id,
-      closing_amount: parseFloat(closingAmount),
+      closing_amount: finalAmount,
+      notes: denomNote,
     });
     setClosingAmount("");
+    setDenominations({});
     setCloseCashModal(false);
   };
 
@@ -338,6 +465,12 @@ export function CajaPage() {
       finalNotes = notes ? `${cashNote} — ${notes}` : cashNote;
     }
 
+    if (showCustomer && (customerName.trim() || customerPhone.trim())) {
+      const parts = [customerName.trim(), customerPhone.trim()].filter(Boolean);
+      const customerNote = `Cliente: ${parts.join(" / ")}`;
+      finalNotes = finalNotes ? `${customerNote} — ${finalNotes}` : customerNote;
+    }
+
     const sale = await createSale.mutateAsync({
       cartItems: cart,
       cashRegisterId: cashRegister.id,
@@ -354,8 +487,69 @@ export function CajaPage() {
     setIsMixto(false);
     setMixtoCash("");
     setMixtoCard("");
+    setShowCustomer(false);
+    setCustomerName("");
+    setCustomerPhone("");
     setCheckoutModal(false);
     setReceiptModal(true);
+  };
+
+  // Parking
+  const handleParkOrder = () => {
+    if (cart.length === 0 || !parkName.trim()) return;
+    const updated: ParkedOrder[] = [
+      ...parkedOrders,
+      {
+        id: crypto.randomUUID(),
+        name: parkName.trim(),
+        cart: [...cart],
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    setParkedOrders(updated);
+    saveParked(updated);
+    setCart([]);
+    setParkName("");
+    setParkSaveModal(false);
+    toast.success("Pedido guardado en espera");
+  };
+
+  const handleResumeParked = (order: ParkedOrder) => {
+    if (cart.length > 0) {
+      toast.error("Limpia el pedido actual antes de retomar otro");
+      return;
+    }
+    setCart(order.cart);
+    const filtered = parkedOrders.filter((o) => o.id !== order.id);
+    setParkedOrders(filtered);
+    saveParked(filtered);
+    setParkingModal(false);
+    toast.success(`Pedido "${order.name}" retomado`);
+  };
+
+  const handleDeleteParked = (id: string) => {
+    const filtered = parkedOrders.filter((o) => o.id !== id);
+    setParkedOrders(filtered);
+    saveParked(filtered);
+  };
+
+  // Movimiento manual
+  const handleCreateMovement = async () => {
+    if (!cashRegister || !movementAmount || !movementCategory.trim()) return;
+    await createTransaction.mutateAsync({
+      cashRegisterId: cashRegister.id,
+      formData: {
+        type: movementType,
+        amount: movementAmount,
+        category: movementCategory.trim(),
+        description: movementDescription.trim(),
+        payment_method: "efectivo",
+      },
+    });
+    setMovementAmount("");
+    setMovementCategory("");
+    setMovementDescription("");
+    setMovementModal(false);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -400,6 +594,14 @@ export function CajaPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setMovementModal(true)}
+            >
+              <ArrowLeftRight className="mr-2 h-4 w-4" />
+              Movimiento
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCloseCashModal(true)}
             >
               <LockKeyhole className="mr-2 h-4 w-4" />
@@ -413,7 +615,7 @@ export function CajaPage() {
 
       {/* KPIs */}
       {cashRegister && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           <div className="rounded-lg border bg-card p-3">
             <p className="text-xs text-muted-foreground">Ventas hoy</p>
             <p className="text-xl font-bold">{todaySales.length}</p>
@@ -429,6 +631,42 @@ export function CajaPage() {
             <p className="text-xl font-bold">
               {formatCurrency(cashRegister.opening_amount)}
             </p>
+          </div>
+          <div className="rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-1 mb-1.5">
+              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+              <p className="text-xs text-muted-foreground">Más vendidos hoy</p>
+            </div>
+            {topProducts.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">
+                Sin ventas aún
+              </p>
+            ) : (
+              <div className="space-y-0.5 max-h-16 overflow-y-auto">
+                {topProducts.slice(0, 3).map((product, i) => {
+                  const qty =
+                    validSales
+                      .flatMap((s) => s.items ?? [])
+                      .filter((it) => it.product_id === product.id)
+                      .reduce((sum, it) => sum + it.quantity, 0);
+                  return (
+                    <button
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className="flex items-center gap-2 w-full text-left text-xs rounded px-1 py-0.5 hover:bg-muted transition-colors"
+                    >
+                      <span className="text-muted-foreground">{i + 1}.</span>
+                      <span className="font-medium truncate flex-1">
+                        {product.name}
+                      </span>
+                      <span className="text-muted-foreground shrink-0">
+                        ×{qty}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -500,7 +738,8 @@ export function CajaPage() {
                 <p>No hay productos disponibles</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto">
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto">
                 {paginatedProducts.map((product) => {
                   const price = getProductPrice(product);
                   const promo = getPromoForProduct(product);
@@ -568,7 +807,8 @@ export function CajaPage() {
                     </motion.button>
                   );
                 })}
-              </div>
+                </div>
+              </>
             )}
 
             {filteredProducts.length > PRODUCTS_PER_PAGE && (
@@ -615,12 +855,38 @@ export function CajaPage() {
                 <ShoppingCart className="h-4 w-4" />
                 <span className="font-medium text-sm">Pedido actual</span>
               </div>
-              {cart.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={() => setCart([])}>
-                  <X className="h-3 w-3 mr-1" />
-                  Limpiar
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {parkedOrders.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setParkingModal(true)}
+                  >
+                    <PlayCircle className="h-3 w-3 mr-1" />
+                    En espera ({parkedOrders.length})
+                  </Button>
+                )}
+                {cart.length > 0 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setParkSaveModal(true)}
+                    >
+                      <PauseCircle className="h-3 w-3 mr-1" />
+                      Guardar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCart([])}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Limpiar
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
             {cart.length === 0 ? (
@@ -935,48 +1201,226 @@ export function CajaPage() {
 
       {/* Modal cerrar caja */}
       <Dialog open={closeCashModal} onOpenChange={setCloseCashModal}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="!max-w-4xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cerrar caja</DialogTitle>
             <DialogDescription>
-              Ingresa el monto final contado en caja.
+              Revisa el resumen del día y realiza el arqueo desglosado.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-muted text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Ventas del día</span>
-                <span className="font-medium">
-                  {formatCurrency(todayTotal)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Apertura</span>
-                <span className="font-medium">
-                  {formatCurrency(cashRegister?.opening_amount ?? 0)}
-                </span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span>Esperado en caja</span>
-                <span>
-                  {formatCurrency(
-                    (cashRegister?.opening_amount ?? 0) + todayTotal,
-                  )}
-                </span>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Resumen del día */}
             <div className="space-y-2">
-              <Label>Monto contado *</Label>
-              <Input
-                type="number"
-                min="0"
-                step="1000"
-                placeholder="0"
-                value={closingAmount}
-                onChange={(e) => setClosingAmount(e.target.value)}
-              />
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase">
+                  Resumen del día
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Transacciones
+                    </p>
+                    <p className="font-bold">{validSales.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Anuladas</p>
+                    <p className="font-bold text-destructive">{voidedCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Total ventas
+                    </p>
+                    <p className="font-bold text-green-600">
+                      {formatCurrency(todayTotal)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Descuentos</p>
+                    <p className="font-bold">{formatCurrency(totalDiscounts)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-3 space-y-1 text-sm">
+                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
+                  Por método de pago
+                </p>
+                {(["efectivo", "tarjeta", "transferencia", "otro"] as const).map(
+                  (m) =>
+                    salesByMethod[m] ? (
+                      <div key={m} className="flex justify-between">
+                        <span className="capitalize text-muted-foreground">
+                          {m}
+                        </span>
+                        <span className="font-medium">
+                          {formatCurrency(salesByMethod[m])}
+                        </span>
+                      </div>
+                    ) : null,
+                )}
+                {Object.keys(salesByMethod).length === 0 && (
+                  <p className="text-xs text-muted-foreground">Sin ventas</p>
+                )}
+              </div>
+
+              {topProducts.length > 0 && (
+                <div className="rounded-lg border p-3 space-y-1 text-sm">
+                  <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
+                    Top productos
+                  </p>
+                  {topProducts.slice(0, 3).map((p, i) => (
+                    <div key={p.id} className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {i + 1}. {p.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
+                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">
+                  Movimientos manuales
+                </p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ingresos</span>
+                  <span className="font-medium text-green-600">
+                    {formatCurrency(todayIngresos)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Egresos</span>
+                  <span className="font-medium text-destructive">
+                    {formatCurrency(todayEgresos)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Apertura</span>
+                  <span>
+                    {formatCurrency(cashRegister?.opening_amount ?? 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">+ Efectivo ventas</span>
+                  <span>{formatCurrency(salesByMethod.efectivo ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">+ Ingresos</span>
+                  <span>{formatCurrency(todayIngresos)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">− Egresos</span>
+                  <span>{formatCurrency(todayEgresos)}</span>
+                </div>
+                <div className="flex justify-between font-bold pt-1 border-t">
+                  <span>Esperado en caja</span>
+                  <span>{formatCurrency(expectedInCash)}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
+
+            {/* Arqueo desglosado */}
+            <div className="space-y-2">
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calculator className="h-4 w-4" />
+                  <p className="text-xs font-medium uppercase">
+                    Arqueo desglosado
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {DENOMINATIONS.map((d) => {
+                    const qty = parseInt(denominations[d] || "0") || 0;
+                    const subtotal = d * qty;
+                    return (
+                      <div
+                        key={d}
+                        className={cn(
+                          "grid grid-cols-[90px_1fr_100px] items-center gap-3 rounded-md border px-3 py-0.5 transition-colors",
+                          qty > 0 && "border-primary/40 bg-primary/5",
+                        )}
+                      >
+                        <span className="text-sm font-medium">
+                          {formatCurrency(d)}
+                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          className="h-8 text-sm text-center font-bold"
+                          value={denominations[d] || ""}
+                          onChange={(e) =>
+                            setDenominations((prev) => ({
+                              ...prev,
+                              [d]: e.target.value,
+                            }))
+                          }
+                        />
+                        <span
+                          className={cn(
+                            "text-sm text-right font-semibold",
+                            qty > 0 ? "text-primary" : "text-muted-foreground",
+                          )}
+                        >
+                          {formatCurrency(subtotal)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-3 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Total contado
+                  </span>
+                  <span className="text-lg font-bold">
+                    {formatCurrency(denomTotal)}
+                  </span>
+                </div>
+                {denomTotal > 0 && (
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="text-sm">Diferencia</span>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        denomDiff === 0
+                          ? "text-green-600"
+                          : denomDiff > 0
+                            ? "text-amber-500"
+                            : "text-destructive",
+                      )}
+                    >
+                      {denomDiff > 0 ? "+" : ""}
+                      {formatCurrency(denomDiff)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {denomTotal === 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs">
+                    O ingresar monto manual *
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="0"
+                    value={closingAmount}
+                    onChange={(e) => setClosingAmount(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
                 className="flex-1"
@@ -988,7 +1432,9 @@ export function CajaPage() {
                 variant="destructive"
                 className="flex-1"
                 onClick={handleCloseCash}
-                disabled={!closingAmount || closeCash.isPending}
+                disabled={
+                  (denomTotal === 0 && !closingAmount) || closeCash.isPending
+                }
               >
                 {closeCash.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -996,7 +1442,6 @@ export function CajaPage() {
                 Cerrar caja
               </Button>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
 
@@ -1237,6 +1682,48 @@ export function CajaPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              {!showCustomer ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowCustomer(true)}
+                >
+                  <User className="h-3 w-3 mr-1" />
+                  Agregar cliente
+                </Button>
+              ) : (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Cliente</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomer(false);
+                        setCustomerName("");
+                        setCustomerPhone("");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                  <Input
+                    placeholder="Nombre"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Teléfono"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -1365,6 +1852,186 @@ export function CajaPage() {
               )}
               Anular venta
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal guardar pedido en espera */}
+      <Dialog open={parkSaveModal} onOpenChange={setParkSaveModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Guardar pedido en espera</DialogTitle>
+            <DialogDescription>
+              Asigna un nombre para identificarlo después.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre / mesa *</Label>
+              <Input
+                placeholder="Ej: Mesa 3, Juan, Para llevar..."
+                value={parkName}
+                onChange={(e) => setParkName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setParkSaveModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleParkOrder}
+                disabled={!parkName.trim()}
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal pedidos en espera */}
+      <Dialog open={parkingModal} onOpenChange={setParkingModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pedidos en espera</DialogTitle>
+            <DialogDescription>
+              Retoma un pedido guardado o elimínalo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {parkedOrders.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No hay pedidos en espera
+              </p>
+            ) : (
+              parkedOrders.map((order) => {
+                const total = order.cart.reduce((s, i) => s + i.subtotal, 0);
+                return (
+                  <div
+                    key={order.id}
+                    className="rounded-lg border p-3 flex items-center justify-between gap-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{order.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.cart.length} producto
+                        {order.cart.length === 1 ? "" : "s"} •{" "}
+                        {formatCurrency(total)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleTimeString("es-CO", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => handleResumeParked(order)}
+                      >
+                        <PlayCircle className="h-3 w-3 mr-1" />
+                        Retomar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteParked(order.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal movimiento manual */}
+      <Dialog open={movementModal} onOpenChange={setMovementModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Movimiento de caja</DialogTitle>
+            <DialogDescription>
+              Registra un ingreso o egreso manual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={movementType === "ingreso" ? "default" : "outline"}
+                onClick={() => setMovementType("ingreso")}
+              >
+                Ingreso
+              </Button>
+              <Button
+                type="button"
+                variant={movementType === "egreso" ? "destructive" : "outline"}
+                onClick={() => setMovementType("egreso")}
+              >
+                Egreso
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label>Monto *</Label>
+              <Input
+                type="number"
+                min="0"
+                step="100"
+                placeholder="0"
+                value={movementAmount}
+                onChange={(e) => setMovementAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoría *</Label>
+              <Input
+                placeholder="Ej: Propina, Servilletas, Retiro..."
+                value={movementCategory}
+                onChange={(e) => setMovementCategory(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Input
+                placeholder="Opcional"
+                value={movementDescription}
+                onChange={(e) => setMovementDescription(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setMovementModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleCreateMovement}
+                disabled={
+                  !movementAmount ||
+                  !movementCategory.trim() ||
+                  createTransaction.isPending
+                }
+              >
+                {createTransaction.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Registrar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
