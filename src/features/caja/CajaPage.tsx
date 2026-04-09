@@ -95,6 +95,19 @@ const DENOMINATIONS = [
   100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50,
 ];
 
+const ITEM_TAGS = [
+  "Sin azúcar",
+  "Extra shot",
+  "Para llevar",
+  "Sin hielo",
+  "Con hielo",
+  "Sin leche",
+  "Leche de almendras",
+  "Caliente",
+  "Frío",
+  "Doble porción",
+];
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -341,6 +354,20 @@ export function CajaPage() {
     setCart((prev) => prev.filter((item) => item.product_id !== productId));
   };
 
+  const toggleItemTag = (productId: string, tag: string) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product_id !== productId) return item;
+        const current = item.notes ?? [];
+        const has = current.includes(tag);
+        return {
+          ...item,
+          notes: has ? current.filter((t) => t !== tag) : [...current, tag],
+        };
+      }),
+    );
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountAmount = parseFloat(discount) || 0;
   const total = Math.max(0, subtotal - discountAmount);
@@ -469,6 +496,14 @@ export function CajaPage() {
       const parts = [customerName.trim(), customerPhone.trim()].filter(Boolean);
       const customerNote = `Cliente: ${parts.join(" / ")}`;
       finalNotes = finalNotes ? `${customerNote} — ${finalNotes}` : customerNote;
+    }
+
+    const itemNotes = cart
+      .filter((i) => i.notes && i.notes.length > 0)
+      .map((i) => `${i.product_name}: ${i.notes!.join(", ")}`)
+      .join(" | ");
+    if (itemNotes) {
+      finalNotes = finalNotes ? `${finalNotes} — ${itemNotes}` : itemNotes;
     }
 
     const sale = await createSale.mutateAsync({
@@ -989,6 +1024,29 @@ export function CajaPage() {
                             </span>
                           </div>
                         )}
+
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {ITEM_TAGS.map((tag) => {
+                            const active = item.notes?.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() =>
+                                  toggleItemTag(item.product_id, tag)
+                                }
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0.5 rounded-full border transition-colors",
+                                  active
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "border-border text-muted-foreground hover:border-primary/50",
+                                )}
+                              >
+                                {tag}
+                              </button>
+                            );
+                          })}
+                        </div>
 
                         {systemSettings?.tax_enabled && (
                           <div className="flex justify-between items-center pt-1 border-t border-dashed">

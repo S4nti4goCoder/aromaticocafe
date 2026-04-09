@@ -292,6 +292,7 @@ export interface CartItem {
   product_price: number;
   quantity: number;
   subtotal: number;
+  notes?: string[];
 }
 
 export type InventoryMovementType = "entrada" | "salida" | "ajuste";
