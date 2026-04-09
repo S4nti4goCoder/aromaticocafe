@@ -1,12 +1,16 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useProfile } from "@/hooks/useProfile";
+import { useAutoAttendance } from "@/hooks/useAutoAttendance";
 import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute() {
   const { user, isLoading } = useAuthStore();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const location = useLocation();
+
+  // Auto-register attendance on login
+  useAutoAttendance();
 
   if (isLoading || isLoadingProfile) {
     return (
