@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,8 @@ import {
   Ban,
   Printer,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +66,8 @@ const formatCurrency = (amount: number) =>
 export function CajaPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 9;
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("efectivo");
   const [discount, setDiscount] = useState("");
@@ -78,6 +82,10 @@ export function CajaPage() {
   const [closingAmount, setClosingAmount] = useState("");
   const [voidModal, setVoidModal] = useState<Sale | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [cashReceived, setCashReceived] = useState("");
+  const [isMixto, setIsMixto] = useState(false);
+  const [mixtoCash, setMixtoCash] = useState("");
+  const [mixtoCard, setMixtoCard] = useState("");
   const [historyReceiptSale, setHistoryReceiptSale] = useState<Sale | null>(
     null,
   );
@@ -117,6 +125,20 @@ export function CajaPage() {
       selectedCategory === "all" || p.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
+  const currentPage = Math.min(page, totalPages);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * PRODUCTS_PER_PAGE,
+    currentPage * PRODUCTS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory]);
 
   const getPromoForProduct = (
     product: (typeof products)[0],
@@ -281,22 +303,70 @@ export function CajaPage() {
     setCloseCashModal(false);
   };
 
+  const cashReceivedNum = parseFloat(cashReceived) || 0;
+  const change = Math.max(0, cashReceivedNum - total);
+  const cashShort = paymentMethod === "efectivo" && cashReceivedNum < total;
+
+  const mixtoCashNum = parseFloat(mixtoCash) || 0;
+  const mixtoCardNum = parseFloat(mixtoCard) || 0;
+  const mixtoSum = mixtoCashNum + mixtoCardNum;
+  const mixtoShort = isMixto && mixtoSum < total;
+
+  const canConfirm = isMixto
+    ? !mixtoShort && mixtoCashNum > 0 && mixtoCardNum > 0
+    : paymentMethod === "efectivo"
+      ? !cashShort
+      : true;
+
   const handleCheckout = async () => {
     if (!cashRegister || cart.length === 0) return;
+    if (!canConfirm) return;
+
+    let finalPaymentMethod: PaymentMethod = paymentMethod;
+    let finalNotes = notes;
+
+    if (isMixto) {
+      finalPaymentMethod = "otro";
+      const mixtoNote = `Pago mixto: Efectivo ${formatCurrency(
+        mixtoCashNum,
+      )} + Tarjeta ${formatCurrency(mixtoCardNum)}`;
+      finalNotes = notes ? `${mixtoNote} — ${notes}` : mixtoNote;
+    } else if (paymentMethod === "efectivo" && cashReceivedNum > 0) {
+      const cashNote = `Recibido ${formatCurrency(
+        cashReceivedNum,
+      )} — Vuelto ${formatCurrency(change)}`;
+      finalNotes = notes ? `${cashNote} — ${notes}` : cashNote;
+    }
+
     const sale = await createSale.mutateAsync({
       cartItems: cart,
       cashRegisterId: cashRegister.id,
-      paymentMethod,
+      paymentMethod: finalPaymentMethod,
       discount: discountAmount,
-      notes: notes || undefined,
+      notes: finalNotes || undefined,
     });
     setLastSale(sale);
     setLastCartItems([...cart]);
     setCart([]);
     setDiscount("");
     setNotes("");
+    setCashReceived("");
+    setIsMixto(false);
+    setMixtoCash("");
+    setMixtoCard("");
     setCheckoutModal(false);
     setReceiptModal(true);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (filteredProducts.length === 0) {
+      toast.error("No se encontró ningún producto");
+      return;
+    }
+    addToCart(filteredProducts[0]);
+    setSearch("");
   };
 
   return (
@@ -394,10 +464,11 @@ export function CajaPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar producto..."
+                  placeholder="Buscar producto o escanear código..."
                   className="pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                 />
               </div>
               <Select
@@ -430,7 +501,7 @@ export function CajaPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto">
-                {filteredProducts.map((product) => {
+                {paginatedProducts.map((product) => {
                   const price = getProductPrice(product);
                   const promo = getPromoForProduct(product);
                   const inCart = cart.find((i) => i.product_id === product.id);
@@ -497,6 +568,42 @@ export function CajaPage() {
                     </motion.button>
                   );
                 })}
+              </div>
+            )}
+
+            {filteredProducts.length > PRODUCTS_PER_PAGE && (
+              <div className="flex items-center justify-between border-t pt-2 mt-auto">
+                <p className="text-xs text-muted-foreground">
+                  {(currentPage - 1) * PRODUCTS_PER_PAGE + 1}-
+                  {Math.min(
+                    currentPage * PRODUCTS_PER_PAGE,
+                    filteredProducts.length,
+                  )}{" "}
+                  de {filteredProducts.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={currentPage === 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -984,22 +1091,142 @@ export function CajaPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Método de pago</Label>
-              <Select
-                value={paymentMethod}
-                onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectItem value="efectivo">Efectivo</SelectItem>
-                  <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                  <SelectItem value="transferencia">Transferencia</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Método de pago</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMixto((v) => !v);
+                    setCashReceived("");
+                  }}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded border transition-colors",
+                    isMixto
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:border-primary",
+                  )}
+                >
+                  Pago mixto
+                </button>
+              </div>
+              {!isMixto && (
+                <Select
+                  value={paymentMethod}
+                  onValueChange={(v) => {
+                    setPaymentMethod(v as PaymentMethod);
+                    setCashReceived("");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                    <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                    <SelectItem value="transferencia">
+                      Transferencia
+                    </SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+
+            {!isMixto && paymentMethod === "efectivo" && (
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <Label>Recibido</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  placeholder="0"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-1">
+                  {[5000, 10000, 20000, 50000].map((v) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 flex-1"
+                      onClick={() => setCashReceived(String(v))}
+                    >
+                      {formatCurrency(v)}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7 flex-1"
+                    onClick={() => setCashReceived(String(total))}
+                  >
+                    Exacto
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">
+                    {cashShort ? "Faltan" : "Vuelto"}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-2xl font-bold",
+                      cashShort ? "text-destructive" : "text-green-600",
+                    )}
+                  >
+                    {formatCurrency(
+                      cashShort ? total - cashReceivedNum : change,
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {isMixto && (
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Efectivo</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="0"
+                    value={mixtoCash}
+                    onChange={(e) => setMixtoCash(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Tarjeta</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="0"
+                    value={mixtoCard}
+                    onChange={(e) => setMixtoCard(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t text-sm">
+                  <span className="text-muted-foreground">Suma</span>
+                  <span
+                    className={cn(
+                      "font-bold",
+                      mixtoShort ? "text-destructive" : "text-green-600",
+                    )}
+                  >
+                    {formatCurrency(mixtoSum)} / {formatCurrency(total)}
+                  </span>
+                </div>
+                {mixtoShort && (
+                  <p className="text-xs text-destructive">
+                    Faltan {formatCurrency(total - mixtoSum)}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Notas</Label>
@@ -1021,7 +1248,7 @@ export function CajaPage() {
               <Button
                 className="flex-1"
                 onClick={handleCheckout}
-                disabled={createSale.isPending}
+                disabled={createSale.isPending || !canConfirm}
               >
                 {createSale.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
