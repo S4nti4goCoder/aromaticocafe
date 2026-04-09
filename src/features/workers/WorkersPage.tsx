@@ -11,12 +11,16 @@ import {
   X,
   Check,
   ChevronDown,
+  Calendar,
+  ClipboardCheck,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -50,6 +54,9 @@ import {
   useUpdateWorkerStatus,
 } from "@/hooks/useWorkers";
 import { WorkerFormModal } from "@/features/workers/WorkerFormModal";
+import { ShiftsTab } from "@/features/workers/ShiftsTab";
+import { AttendanceTab } from "@/features/workers/AttendanceTab";
+import { PerformanceTab } from "@/features/workers/PerformanceTab";
 import { PermissionGuard } from "@/components/shared/PermissionGuard";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Pagination } from "@/components/shared/Pagination";
@@ -248,6 +255,27 @@ export function WorkersPage() {
         </PermissionGuard>
       </div>
 
+      <Tabs defaultValue="team" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="team" className="gap-2">
+            <Users className="h-4 w-4" />
+            Equipo
+          </TabsTrigger>
+          <TabsTrigger value="shifts" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Turnos
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            Asistencia
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Rendimiento
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="team" className="space-y-4">
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48 max-w-sm">
@@ -561,6 +589,20 @@ export function WorkersPage() {
           />
         </>
       )}
+        </TabsContent>
+
+        <TabsContent value="shifts">
+          <ShiftsTab />
+        </TabsContent>
+
+        <TabsContent value="attendance">
+          <AttendanceTab />
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <PerformanceTab />
+        </TabsContent>
+      </Tabs>
 
       <WorkerFormModal
         open={modal.open}
