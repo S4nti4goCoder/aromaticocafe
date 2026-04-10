@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import type { CashRegister, Transaction, TransactionFormData } from "@/types";
+import type {
+  CashRegister,
+  Transaction,
+  TransactionFormData,
+  PaymentMethod,
+} from "@/types";
 
 // ── Constantes Colombia 2026 ──────────────────────────────
 export const COLOMBIA_2026 = {
@@ -32,6 +37,22 @@ export function useTodayCashRegister() {
 
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function useCashRegisterHistory(limit = 30) {
+  return useQuery({
+    queryKey: ["cash_register", "history", limit],
+    queryFn: async (): Promise<CashRegister[]> => {
+      const { data, error } = await supabase
+        .from("cash_register")
+        .select("*")
+        .order("date", { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data as CashRegister[];
     },
   });
 }
@@ -122,11 +143,15 @@ export function useCloseCashRegister() {
 
 // ── Transacciones ─────────────────────────────────────────
 
-export function useTransactions(filters?: {
+export interface TransactionFilters {
   type?: "ingreso" | "egreso";
+  category?: string;
+  payment_method?: PaymentMethod;
   startDate?: string;
   endDate?: string;
-}) {
+}
+
+export function useTransactions(filters?: TransactionFilters) {
   return useQuery({
     queryKey: ["transactions", filters],
     queryFn: async (): Promise<Transaction[]> => {
@@ -136,9 +161,13 @@ export function useTransactions(filters?: {
         .order("created_at", { ascending: false });
 
       if (filters?.type) query = query.eq("type", filters.type);
+      if (filters?.category) query = query.eq("category", filters.category);
+      if (filters?.payment_method)
+        query = query.eq("payment_method", filters.payment_method);
       if (filters?.startDate)
         query = query.gte("created_at", filters.startDate);
-      if (filters?.endDate) query = query.lte("created_at", filters.endDate);
+      if (filters?.endDate)
+        query = query.lte("created_at", filters.endDate + "T23:59:59");
 
       const { data, error } = await query;
       if (error) throw error;
@@ -191,6 +220,43 @@ export function useCreateTransaction() {
   });
 }
 
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      formData,
+    }: {
+      id: string;
+      formData: TransactionFormData;
+    }) => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .update({
+          type: formData.type,
+          amount: parseFloat(formData.amount),
+          category: formData.category,
+          description: formData.description || null,
+          payment_method: formData.payment_method,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Transacción actualizada");
+    },
+    onError: () => {
+      toast.error("Error al actualizar la transacción");
+    },
+  });
+}
+
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
 
@@ -213,20 +279,22 @@ export function useDeleteTransaction() {
   });
 }
 
-export function useTransactionSummary() {
+export function useTransactionSummary(year?: number, month?: number) {
+  const now = new Date();
+  const y = year ?? now.getFullYear();
+  const m = month ?? now.getMonth();
+
   return useQuery({
-    queryKey: ["transactions", "summary"],
+    queryKey: ["transactions", "summary", y, m],
     queryFn: async () => {
-      const firstDayOfMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        1,
-      ).toISOString();
+      const firstDay = new Date(y, m, 1).toISOString();
+      const lastDay = new Date(y, m + 1, 0, 23, 59, 59).toISOString();
 
       const { data, error } = await supabase
         .from("transactions")
-        .select("type, amount, created_at")
-        .gte("created_at", firstDayOfMonth);
+        .select("type, amount, category, created_at")
+        .gte("created_at", firstDay)
+        .lte("created_at", lastDay);
 
       if (error) throw error;
 
@@ -257,18 +325,168 @@ export function useTransactionSummary() {
           ...values,
         }));
 
-      return { ingresos, egresos, balance: ingresos - egresos, chartData };
+      // Top categorías
+      const byCategory: Record<
+        string,
+        { type: string; total: number; count: number }
+      > = {};
+      data.forEach((t) => {
+        const key = `${t.type}:${t.category}`;
+        if (!byCategory[key])
+          byCategory[key] = { type: t.type, total: 0, count: 0 };
+        byCategory[key].total += Number(t.amount);
+        byCategory[key].count += 1;
+      });
+
+      const topIngresos = Object.entries(byCategory)
+        .filter(([, v]) => v.type === "ingreso")
+        .map(([k, v]) => ({ category: k.split(":")[1], ...v }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+
+      const topEgresos = Object.entries(byCategory)
+        .filter(([, v]) => v.type === "egreso")
+        .map(([k, v]) => ({ category: k.split(":")[1], ...v }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+
+      return {
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+        chartData,
+        topIngresos,
+        topEgresos,
+      };
+    },
+  });
+}
+
+export function useTransactionSummaryPrevMonth(year?: number, month?: number) {
+  const now = new Date();
+  const y = year ?? now.getFullYear();
+  const m = month ?? now.getMonth();
+  const prevMonth = m === 0 ? 11 : m - 1;
+  const prevYear = m === 0 ? y - 1 : y;
+
+  return useQuery({
+    queryKey: ["transactions", "summary_prev", prevYear, prevMonth],
+    queryFn: async () => {
+      const firstDay = new Date(prevYear, prevMonth, 1).toISOString();
+      const lastDay = new Date(
+        prevYear,
+        prevMonth + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toISOString();
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("type, amount")
+        .gte("created_at", firstDay)
+        .lte("created_at", lastDay);
+
+      if (error) throw error;
+
+      const ingresos = data
+        .filter((t) => t.type === "ingreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const egresos = data
+        .filter((t) => t.type === "egreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      return { ingresos, egresos, balance: ingresos - egresos };
+    },
+  });
+}
+
+// ── Dashboard del día ────────────────────────────────────
+
+export function useTodaySummary() {
+  return useQuery({
+    queryKey: ["transactions", "today_summary"],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("type, amount, category")
+        .gte("created_at", today)
+        .lte("created_at", today + "T23:59:59");
+
+      if (error) throw error;
+
+      const ingresos = data
+        .filter((t) => t.type === "ingreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const egresos = data
+        .filter((t) => t.type === "egreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const totalTransacciones = data.length;
+
+      // Ventas del día
+      const { data: salesData } = await supabase
+        .from("sales")
+        .select("total")
+        .gte("created_at", today)
+        .lte("created_at", today + "T23:59:59");
+
+      const ventasHoy = salesData?.reduce(
+        (sum, s) => sum + Number(s.total),
+        0,
+      ) ?? 0;
+      const numVentas = salesData?.length ?? 0;
+
+      return {
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+        totalTransacciones,
+        ventasHoy,
+        numVentas,
+      };
+    },
+  });
+}
+
+// ── Caja: diferencia esperada ────────────────────────────
+
+export function useCashDifference(cashRegisterId: string | null) {
+  return useQuery({
+    queryKey: ["cash_difference", cashRegisterId],
+    enabled: !!cashRegisterId,
+    queryFn: async () => {
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("type, amount")
+        .eq("cash_register_id", cashRegisterId!);
+
+      if (error) throw error;
+
+      const ingresosEfectivo = transactions
+        .filter((t) => t.type === "ingreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      const egresosEfectivo = transactions
+        .filter((t) => t.type === "egreso")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      return { ingresos: ingresosEfectivo, egresos: egresosEfectivo };
     },
   });
 }
 
 // ── Nómina ────────────────────────────────────────────────
 
-export function usePayrollReport() {
+export function usePayrollReport(year?: number, month?: number) {
+  const now = new Date();
+  const y = year ?? now.getFullYear();
+  const m = month ?? now.getMonth();
+
   return useQuery({
-    queryKey: ["payroll_report"],
+    queryKey: ["payroll_report", y, m],
     queryFn: async () => {
-      // Traer trabajadores activos
       const { data: workers, error } = await supabase
         .from("workers")
         .select("*")
@@ -277,19 +495,15 @@ export function usePayrollReport() {
 
       if (error) throw error;
 
-      // Ventas del mes por vendedor
-      const firstDayOfMonth = new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        1,
-      ).toISOString();
+      const firstDay = new Date(y, m, 1).toISOString();
+      const lastDay = new Date(y, m + 1, 0, 23, 59, 59).toISOString();
 
       const { data: sales } = await supabase
         .from("sales")
         .select("seller_id, total")
-        .gte("created_at", firstDayOfMonth);
+        .gte("created_at", firstDay)
+        .lte("created_at", lastDay);
 
-      // Calcular nómina por trabajador
       const payroll = workers.map((worker) => {
         const workerSales =
           sales
@@ -299,20 +513,15 @@ export function usePayrollReport() {
         const salarioBase = worker.base_salary;
         const auxilioTransporte = worker.transport_allowance;
         const comision = workerSales * (worker.commission_percentage / 100);
-
-        // IBC = salario base (no incluye auxilio)
         const ibc = salarioBase;
 
-        // Descuentos trabajador
         const saludTrabajador = ibc * COLOMBIA_2026.SALUD_TRABAJADOR;
         const pensionTrabajador = ibc * COLOMBIA_2026.PENSION_TRABAJADOR;
         const totalDescuentos = saludTrabajador + pensionTrabajador;
 
-        // Neto trabajador
         const netoTrabajador =
           salarioBase + auxilioTransporte + comision - totalDescuentos;
 
-        // Costo empleador adicional
         const saludEmpleador = ibc * COLOMBIA_2026.SALUD_EMPLEADOR;
         const pensionEmpleador = ibc * COLOMBIA_2026.PENSION_EMPLEADOR;
         const arl = ibc * COLOMBIA_2026.ARL_EMPLEADOR;
@@ -320,7 +529,6 @@ export function usePayrollReport() {
         const costoAdicionalEmpleador =
           saludEmpleador + pensionEmpleador + arl + parafiscales;
 
-        // Costo total para la empresa
         const costoTotalEmpresa =
           salarioBase + auxilioTransporte + comision + costoAdicionalEmpleador;
 

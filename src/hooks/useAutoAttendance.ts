@@ -26,13 +26,13 @@ export function useAutoAttendance() {
         });
 
         // Find the worker linked to this auth user
-        const { data: worker, error: workerError } = await supabase
+        const { data: worker } = await supabase
           .from("workers")
           .select("id, full_name, status")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
-        if (workerError || !worker || worker.status !== "activo") return;
+        if (!worker || worker.status !== "activo") return;
 
         // Check if attendance already exists for today
         const { data: existing } = await supabase

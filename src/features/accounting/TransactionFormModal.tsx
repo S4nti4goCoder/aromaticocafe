@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,14 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateTransaction } from "@/hooks/useAccounting";
-import type { TransactionFormData, TransactionType } from "@/types";
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+} from "@/hooks/useAccounting";
+import type { Transaction, TransactionFormData, TransactionType } from "@/types";
 
 interface TransactionFormModalProps {
   open: boolean;
   onClose: () => void;
   defaultType?: TransactionType;
   cashRegisterId: string | null;
+  editTransaction?: Transaction | null;
 }
 
 const ingresoCategories = ["Venta", "Propina", "Otro ingreso"];
@@ -51,8 +56,11 @@ export function TransactionFormModal({
   onClose,
   defaultType = "ingreso",
   cashRegisterId,
+  editTransaction,
 }: TransactionFormModalProps) {
   const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
+  const isEditing = !!editTransaction;
 
   const {
     register,
@@ -64,31 +72,79 @@ export function TransactionFormModal({
     defaultValues: { ...defaultValues, type: defaultType },
   });
 
+  useEffect(() => {
+    if (editTransaction) {
+      reset({
+        type: editTransaction.type,
+        amount: String(editTransaction.amount),
+        category: editTransaction.category,
+        description: editTransaction.description ?? "",
+        payment_method: editTransaction.payment_method,
+      });
+    } else {
+      reset({ ...defaultValues, type: defaultType });
+    }
+  }, [editTransaction, defaultType, reset]);
+
   const transactionType = useWatch({ control, name: "type" });
   const categories =
     transactionType === "ingreso" ? ingresoCategories : egresoCategories;
 
+  const isPending = createTransaction.isPending || updateTransaction.isPending;
+
   const onSubmit = async (data: TransactionFormData) => {
-    await createTransaction.mutateAsync({ formData: data, cashRegisterId });
+    if (isEditing) {
+      await updateTransaction.mutateAsync({
+        id: editTransaction.id,
+        formData: data,
+      });
+    } else {
+      await createTransaction.mutateAsync({ formData: data, cashRegisterId });
+    }
     reset({ ...defaultValues, type: defaultType });
     onClose();
   };
+
+  const title = isEditing
+    ? "Editar transacción"
+    : defaultType === "ingreso"
+      ? "Registrar ingreso"
+      : "Registrar egreso";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {defaultType === "ingreso"
-              ? "Registrar ingreso"
-              : "Registrar egreso"}
-          </DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Completa los datos de la transacción.
+            {isEditing
+              ? "Modifica los datos de la transacción."
+              : "Completa los datos de la transacción."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {isEditing && (
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectItem value="ingreso">Ingreso</SelectItem>
+                      <SelectItem value="egreso">Egreso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="amount">Monto *</Label>
             <Input
@@ -171,22 +227,30 @@ export function TransactionFormModal({
               variant="outline"
               className="flex-1"
               onClick={onClose}
-              disabled={createTransaction.isPending}
+              disabled={isPending}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="flex-1"
-              disabled={createTransaction.isPending}
-              variant={defaultType === "egreso" ? "destructive" : "default"}
+              disabled={isPending}
+              variant={
+                isEditing
+                  ? "default"
+                  : defaultType === "egreso"
+                    ? "destructive"
+                    : "default"
+              }
             >
-              {createTransaction.isPending && (
+              {isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {defaultType === "ingreso"
-                ? "Registrar ingreso"
-                : "Registrar egreso"}
+              {isEditing
+                ? "Guardar cambios"
+                : defaultType === "ingreso"
+                  ? "Registrar ingreso"
+                  : "Registrar egreso"}
             </Button>
           </div>
         </form>
