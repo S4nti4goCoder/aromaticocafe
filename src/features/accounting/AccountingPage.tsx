@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -105,6 +105,7 @@ function pctChange(current: number, previous: number): number | null {
 }
 
 export function AccountingPage() {
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [transactionModal, setTransactionModal] = useState<{
     open: boolean;
     type: TransactionType;
@@ -310,29 +311,43 @@ export function AccountingPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="dashboard">
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="dashboard" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Hoy</span>
-          </TabsTrigger>
-          <TabsTrigger value="resumen" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Resumen</span>
-          </TabsTrigger>
-          <TabsTrigger value="transacciones" className="gap-2">
-            <Receipt className="h-4 w-4" />
-            <span className="hidden sm:inline">Transacciones</span>
-          </TabsTrigger>
-          <TabsTrigger value="nomina" className="gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Nómina</span>
-          </TabsTrigger>
-          <TabsTrigger value="caja" className="gap-2">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Caja</span>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* ── Custom Tab Navigation ── */}
+        <nav className="flex gap-1.5 p-1.5 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm">
+          {([
+            { value: "dashboard", label: "Hoy", icon: LayoutDashboard, accent: "text-blue-400" },
+            { value: "resumen", label: "Resumen", icon: TrendingUp, accent: "text-emerald-400" },
+            { value: "transacciones", label: "Transacciones", icon: Receipt, accent: "text-amber-400" },
+            { value: "nomina", label: "Nómina", icon: Users, accent: "text-violet-400" },
+            { value: "caja", label: "Caja", icon: DollarSign, accent: "text-rose-400" },
+          ] as const).map((tab) => {
+            const isActive = activeTab === tab.value;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`relative flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
+                  isActive
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground/80"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="accounting-tab-indicator"
+                    className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/80"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex items-center gap-2">
+                  <Icon className={`h-4 w-4 transition-colors duration-200 ${isActive ? tab.accent : ""}`} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
 
         {/* ── TAB DASHBOARD HOY ── */}
         <TabsContent value="dashboard" className="mt-4 space-y-4">
