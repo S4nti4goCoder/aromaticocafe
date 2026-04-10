@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
   Store,
@@ -21,6 +21,12 @@ import {
   Quote,
   Plus,
   Trash2,
+  ExternalLink,
+  AlertCircle,
+  GripVertical,
+  Check,
+  X,
+  ImageOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +39,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
@@ -56,10 +63,232 @@ type FormData = Omit<
   | "about_image_url"
 >;
 
+// ── Tab config ──
+const TABS = [
+  { value: "general", label: "General", icon: Store, accent: "text-amber-400" },
+  { value: "media", label: "Imágenes", icon: Image, accent: "text-sky-400" },
+  { value: "colors", label: "Colores", icon: Palette, accent: "text-rose-400" },
+  { value: "contact", label: "Contacto", icon: Globe, accent: "text-emerald-400" },
+  { value: "about", label: "Nosotros", icon: Users, accent: "text-violet-400" },
+  { value: "gallery", label: "Galería", icon: Camera, accent: "text-cyan-400" },
+  { value: "testimonials", label: "Reseñas", icon: Quote, accent: "text-orange-400" },
+  { value: "featured", label: "Destacados", icon: Star, accent: "text-yellow-400" },
+] as const;
+
+// ── Coffee-themed color palettes ──
+const COFFEE_PALETTES = [
+  { name: "Espresso", primary: "#3C1518", secondary: "#69140E" },
+  { name: "Latte", primary: "#A0522D", secondary: "#C8864A" },
+  { name: "Mocha", primary: "#4A2C2A", secondary: "#8B5E3C" },
+  { name: "Cappuccino", primary: "#6F4E37", secondary: "#C4A882" },
+  { name: "Caramelo", primary: "#8B4513", secondary: "#D2691E" },
+  { name: "Menta", primary: "#2D5016", secondary: "#4A7C3F" },
+  { name: "Vainilla", primary: "#8B7355", secondary: "#F5DEB3" },
+  { name: "Cereza", primary: "#8B0000", secondary: "#CD5C5C" },
+  { name: "Canela", primary: "#7B3F00", secondary: "#D2691E" },
+  { name: "Ámbar", primary: "#B8860B", secondary: "#DAA520" },
+];
+
+// ── URL validation ──
+function isValidUrl(url: string): boolean {
+  if (!url.trim()) return true;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Image preview component ──
+function ImagePreview({
+  url,
+  alt,
+  className = "h-24 w-full object-cover rounded-lg",
+  fallbackClassName = "h-24 w-full rounded-lg bg-muted/50 flex items-center justify-center",
+}: {
+  url: string | null;
+  alt: string;
+  className?: string;
+  fallbackClassName?: string;
+}) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">(
+    url ? "loading" : "error",
+  );
+
+  if (!url || !isValidUrl(url)) {
+    return (
+      <div className={fallbackClassName}>
+        <ImageOff className="h-6 w-6 text-muted-foreground/50" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {status === "loading" && (
+        <div className={fallbackClassName}>
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/50" />
+        </div>
+      )}
+      <img
+        src={url}
+        alt={alt}
+        className={`${className} ${status === "loading" ? "hidden" : ""} ${status === "error" ? "hidden" : ""}`}
+        onLoad={() => setStatus("loaded")}
+        onError={() => setStatus("error")}
+      />
+      {status === "error" && (
+        <div className={fallbackClassName}>
+          <div className="text-center">
+            <ImageOff className="h-5 w-5 text-destructive/50 mx-auto" />
+            <p className="text-xs text-destructive/70 mt-1">URL inválida</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Clickable star rating ──
+function StarRating({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [hover, setHover] = useState(0);
+
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className="p-0.5 transition-transform hover:scale-110"
+        >
+          <Star
+            className={`h-5 w-5 transition-colors ${
+              star <= (hover || value)
+                ? "text-amber-400 fill-amber-400"
+                : "text-muted-foreground/30"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── URL Input with validation ──
+function UrlInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const valid = isValidUrl(value);
+
+  return (
+    <div className="relative">
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={!valid ? "border-destructive pr-9" : "pr-9"}
+      />
+      {value && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          {valid ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Mini landing preview ──
+function ColorPreview({
+  primary,
+  secondary,
+  cafeName,
+}: {
+  primary: string;
+  secondary: string;
+  cafeName: string;
+}) {
+  return (
+    <div className="rounded-lg border overflow-hidden text-xs">
+      {/* Navbar */}
+      <div
+        className="px-3 py-2 flex items-center justify-between"
+        style={{ backgroundColor: primary }}
+      >
+        <span className="font-bold text-white truncate">{cafeName || "Mi Café"}</span>
+        <div className="flex gap-2">
+          <div className="w-6 h-1.5 rounded-full bg-white/40" />
+          <div className="w-6 h-1.5 rounded-full bg-white/40" />
+          <div className="w-6 h-1.5 rounded-full bg-white/40" />
+        </div>
+      </div>
+      {/* Hero */}
+      <div className="px-3 py-4 bg-linear-to-b from-black/80 to-black/40 text-white text-center">
+        <p className="font-bold text-sm">{cafeName || "Mi Café"}</p>
+        <p className="text-[10px] opacity-70">El mejor café de la ciudad</p>
+        <div
+          className="mt-2 mx-auto px-3 py-1 rounded-full text-[10px] font-medium text-white inline-block"
+          style={{ backgroundColor: secondary }}
+        >
+          Ver menú
+        </div>
+      </div>
+      {/* Content blocks */}
+      <div className="p-2 space-y-1.5 bg-background">
+        <div className="flex gap-1.5">
+          <div className="h-6 flex-1 rounded bg-muted" />
+          <div className="h-6 flex-1 rounded bg-muted" />
+          <div className="h-6 flex-1 rounded bg-muted" />
+        </div>
+        <div
+          className="h-1 rounded-full"
+          style={{ backgroundColor: primary, opacity: 0.3 }}
+        />
+        <div className="flex gap-1.5">
+          <div className="h-8 flex-1 rounded bg-muted" />
+          <div className="h-8 flex-1 rounded bg-muted" />
+        </div>
+      </div>
+      {/* Footer */}
+      <div className="px-3 py-1.5" style={{ backgroundColor: primary }}>
+        <div className="flex gap-1">
+          <div className="w-3 h-3 rounded-full bg-white/30" />
+          <div className="w-3 h-3 rounded-full bg-white/30" />
+          <div className="w-3 h-3 rounded-full bg-white/30" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// ── Main Component ──
+// ════════════════════════════════════════════════════
+
 export function AppearancePage() {
   const { settings, isLoading, updateSettings, isSaving } = useCafeSettings();
   const { data: products } = useProducts();
 
+  const [activeTab, setActiveTab] = useState("general");
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -69,42 +298,75 @@ export function AppearancePage() {
   const [showPromotions, setShowPromotions] = useState(true);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
-  const { register, handleSubmit, reset } = useForm<FormData>();
+  const { register, handleSubmit, reset, watch, getValues } = useForm<FormData>();
+
+  // Watch colors for live preview
+  const watchedPrimary = watch("primary_color");
+  const watchedSecondary = watch("secondary_color");
+  const watchedCafeName = watch("cafe_name");
 
   const [lastSyncedSettings, setLastSyncedSettings] = useState<typeof settings | null>(null);
   if (settings && settings !== lastSyncedSettings) {
     setLastSyncedSettings(settings);
     reset({
-        cafe_name: settings.cafe_name,
-        slogan: settings.slogan ?? "",
-        primary_color: settings.primary_color,
-        secondary_color: settings.secondary_color,
-        facebook_url: settings.facebook_url ?? "",
-        instagram_url: settings.instagram_url ?? "",
-        whatsapp: settings.whatsapp ?? "",
-        email: settings.email ?? "",
-        phone: settings.phone ?? "",
-        address: settings.address ?? "",
-        monday_friday: settings.monday_friday ?? "",
-        saturday: settings.saturday ?? "",
-        sunday: settings.sunday ?? "",
-        about_title: settings.about_title ?? "",
-        about_description: settings.about_description ?? "",
-        maps_embed_url: settings.maps_embed_url ?? "",
-        reservation_title: settings.reservation_title ?? "",
-        reservation_description: settings.reservation_description ?? "",
-        reservation_whatsapp: settings.reservation_whatsapp ?? "",
-      });
-      setFeaturedIds(settings.featured_product_ids ?? []);
-      setLogoUrl(settings.logo_url ?? null);
-      setCoverUrl(settings.cover_url ?? null);
-      setAboutImageUrl(settings.about_image_url ?? null);
-      setGalleryUrls(settings.gallery_urls ?? []);
-      setShowPromotions(settings.show_promotions ?? true);
-      setTestimonials(settings.testimonials ?? []);
+      cafe_name: settings.cafe_name,
+      slogan: settings.slogan ?? "",
+      primary_color: settings.primary_color,
+      secondary_color: settings.secondary_color,
+      facebook_url: settings.facebook_url ?? "",
+      instagram_url: settings.instagram_url ?? "",
+      whatsapp: settings.whatsapp ?? "",
+      email: settings.email ?? "",
+      phone: settings.phone ?? "",
+      address: settings.address ?? "",
+      monday_friday: settings.monday_friday ?? "",
+      saturday: settings.saturday ?? "",
+      sunday: settings.sunday ?? "",
+      about_title: settings.about_title ?? "",
+      about_description: settings.about_description ?? "",
+      maps_embed_url: settings.maps_embed_url ?? "",
+      reservation_title: settings.reservation_title ?? "",
+      reservation_description: settings.reservation_description ?? "",
+      reservation_whatsapp: settings.reservation_whatsapp ?? "",
+    });
+    setFeaturedIds(settings.featured_product_ids ?? []);
+    setLogoUrl(settings.logo_url ?? null);
+    setCoverUrl(settings.cover_url ?? null);
+    setAboutImageUrl(settings.about_image_url ?? null);
+    setGalleryUrls(settings.gallery_urls ?? []);
+    setShowPromotions(settings.show_promotions ?? true);
+    setTestimonials(settings.testimonials ?? []);
   }
 
+  // ── Unsaved changes detection ──
+  const hasUnsavedChanges = useMemo(() => {
+    if (!settings) return false;
+    const formVals = getValues();
+    const formChanged =
+      formVals.cafe_name !== settings.cafe_name ||
+      (formVals.slogan ?? "") !== (settings.slogan ?? "") ||
+      formVals.primary_color !== settings.primary_color ||
+      formVals.secondary_color !== settings.secondary_color;
+    const stateChanged =
+      JSON.stringify(featuredIds) !== JSON.stringify(settings.featured_product_ids ?? []) ||
+      logoUrl !== (settings.logo_url ?? null) ||
+      coverUrl !== (settings.cover_url ?? null) ||
+      aboutImageUrl !== (settings.about_image_url ?? null) ||
+      JSON.stringify(galleryUrls) !== JSON.stringify(settings.gallery_urls ?? []) ||
+      showPromotions !== (settings.show_promotions ?? true) ||
+      JSON.stringify(testimonials) !== JSON.stringify(settings.testimonials ?? []);
+    return formChanged || stateChanged;
+  }, [settings, featuredIds, logoUrl, coverUrl, aboutImageUrl, galleryUrls, showPromotions, testimonials, getValues, watchedPrimary, watchedSecondary, watchedCafeName]);
+
   const onSubmit = async (data: FormData) => {
+    // Validate all URLs before saving
+    const urls = [logoUrl, coverUrl, aboutImageUrl, ...galleryUrls].filter(Boolean);
+    const invalidUrls = urls.filter((u) => !isValidUrl(u!));
+    if (invalidUrls.length > 0) {
+      toast.error("Hay URLs de imágenes inválidas. Corrígelas antes de guardar.");
+      return;
+    }
+
     try {
       await updateSettings({
         ...data,
@@ -133,21 +395,22 @@ export function AppearancePage() {
   };
 
   const addGalleryUrl = () => {
-    if (newGalleryUrl.trim() && galleryUrls.length < 8) {
-      setGalleryUrls((prev) => [...prev, newGalleryUrl.trim()]);
-      setNewGalleryUrl("");
+    const url = newGalleryUrl.trim();
+    if (!url || galleryUrls.length >= 8) return;
+    if (!isValidUrl(url)) {
+      toast.error("La URL no es válida");
+      return;
     }
+    setGalleryUrls((prev) => [...prev, url]);
+    setNewGalleryUrl("");
   };
 
-  const removeGalleryUrl = (index: number) => {
+  const removeGalleryUrl = useCallback((index: number) => {
     setGalleryUrls((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
   const addTestimonial = () => {
-    setTestimonials((prev: Testimonial[]) => [
-      ...prev,
-      { name: "", comment: "", rating: 5 },
-    ]);
+    setTestimonials((prev) => [...prev, { name: "", comment: "", rating: 5 }]);
   };
 
   const updateTestimonial = (
@@ -155,17 +418,17 @@ export function AppearancePage() {
     field: "name" | "comment" | "rating",
     value: string | number,
   ) => {
-    setTestimonials((prev: Testimonial[]) =>
-      prev.map((t: Testimonial, i: number) =>
-        i === index ? { ...t, [field]: value } : t,
-      ),
+    setTestimonials((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)),
     );
   };
 
   const removeTestimonial = (index: number) => {
-    setTestimonials((prev: Testimonial[]) =>
-      prev.filter((_: Testimonial, i: number) => i !== index),
-    );
+    setTestimonials((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const applyPalette = (primary: string, secondary: string) => {
+    reset({ ...getValues(), primary_color: primary, secondary_color: secondary });
   };
 
   const activeProducts: Product[] = (products ?? []).filter((p) => p.is_active);
@@ -194,54 +457,61 @@ export function AppearancePage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Apariencia</h1>
-        <p className="text-muted-foreground">
-          Personaliza la landing page pública de tu cafetería
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Apariencia</h1>
+          <p className="text-muted-foreground">
+            Personaliza la landing page pública de tu cafetería
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open("/", "_blank")}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Ver landing
+          </Button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
-            <TabsTrigger value="general" className="flex items-center gap-1.5">
-              <Store className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">General</span>
-            </TabsTrigger>
-            <TabsTrigger value="media" className="flex items-center gap-1.5">
-              <Image className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Imágenes</span>
-            </TabsTrigger>
-            <TabsTrigger value="colors" className="flex items-center gap-1.5">
-              <Palette className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Colores</span>
-            </TabsTrigger>
-            <TabsTrigger value="contact" className="flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Contacto</span>
-            </TabsTrigger>
-            <TabsTrigger value="about" className="flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Nosotros</span>
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="flex items-center gap-1.5">
-              <Camera className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Galería</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="testimonials"
-              className="flex items-center gap-1.5"
-            >
-              <Quote className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Reseñas</span>
-            </TabsTrigger>
-            <TabsTrigger value="featured" className="flex items-center gap-1.5">
-              <Star className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Destacados</span>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* ── Animated pill tabs ── */}
+          <nav className="flex gap-1 p-1.5 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm overflow-x-auto">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.value;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`relative flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg text-xs font-medium transition-colors duration-200 cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="appearance-tab-pill"
+                      className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/80"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-1.5">
+                    <Icon className={`h-3.5 w-3.5 shrink-0 transition-colors duration-200 ${isActive ? tab.accent : ""}`} />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
 
-          {/* GENERAL */}
+          {/* ── GENERAL ── */}
           <TabsContent value="general">
             <Card>
               <CardHeader>
@@ -274,7 +544,7 @@ export function AppearancePage() {
             </Card>
           </TabsContent>
 
-          {/* IMÁGENES */}
+          {/* ── IMÁGENES ── */}
           <TabsContent value="media">
             <Card>
               <CardHeader>
@@ -290,17 +560,16 @@ export function AppearancePage() {
                 <div className="space-y-2">
                   <Label>Logo del café</Label>
                   <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    {logoUrl && (
-                      <img
-                        src={logoUrl}
-                        alt="Logo"
-                        className="h-24 w-24 object-cover rounded-lg mx-auto"
-                      />
-                    )}
-                    <Input
+                    <ImagePreview
+                      url={logoUrl}
+                      alt="Logo"
+                      className="h-24 w-24 object-cover rounded-lg mx-auto"
+                      fallbackClassName="h-24 w-24 rounded-lg bg-muted/50 flex items-center justify-center mx-auto"
+                    />
+                    <UrlInput
                       placeholder="URL del logo"
                       value={logoUrl ?? ""}
-                      onChange={(e) => setLogoUrl(e.target.value)}
+                      onChange={(v) => setLogoUrl(v || null)}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -310,17 +579,11 @@ export function AppearancePage() {
                 <div className="space-y-2">
                   <Label>Imagen de portada</Label>
                   <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    {coverUrl && (
-                      <img
-                        src={coverUrl}
-                        alt="Portada"
-                        className="h-24 w-full object-cover rounded-lg"
-                      />
-                    )}
-                    <Input
+                    <ImagePreview url={coverUrl} alt="Portada" />
+                    <UrlInput
                       placeholder="URL de la portada"
                       value={coverUrl ?? ""}
-                      onChange={(e) => setCoverUrl(e.target.value)}
+                      onChange={(v) => setCoverUrl(v || null)}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -331,53 +594,122 @@ export function AppearancePage() {
             </Card>
           </TabsContent>
 
-          {/* COLORES */}
+          {/* ── COLORES ── */}
           <TabsContent value="colors">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Colores del Tema
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="primary_color">Color primario</Label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      id="primary_color"
-                      className="h-10 w-14 rounded-md border border-input cursor-pointer"
-                      {...register("primary_color")}
-                    />
-                    <Input
-                      placeholder="#a0522d"
-                      className="font-mono"
-                      {...register("primary_color")}
-                    />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Colores del Tema
+                  </CardTitle>
+                  <CardDescription>
+                    Elige una paleta prediseñada o personaliza tus colores
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Palettes */}
+                  <div className="space-y-3">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Paletas de café
+                    </Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {COFFEE_PALETTES.map((palette) => {
+                        const isActive =
+                          watchedPrimary === palette.primary &&
+                          watchedSecondary === palette.secondary;
+                        return (
+                          <button
+                            key={palette.name}
+                            type="button"
+                            onClick={() =>
+                              applyPalette(palette.primary, palette.secondary)
+                            }
+                            className={`group relative p-2 rounded-lg border-2 transition-all text-left ${
+                              isActive
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="flex gap-1 mb-1.5">
+                              <div
+                                className="h-5 flex-1 rounded"
+                                style={{ backgroundColor: palette.primary }}
+                              />
+                              <div
+                                className="h-5 flex-1 rounded"
+                                style={{ backgroundColor: palette.secondary }}
+                              />
+                            </div>
+                            <p className="text-xs font-medium truncate">
+                              {palette.name}
+                            </p>
+                            {isActive && (
+                              <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondary_color">Color secundario</Label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      id="secondary_color"
-                      className="h-10 w-14 rounded-md border border-input cursor-pointer"
-                      {...register("secondary_color")}
-                    />
-                    <Input
-                      placeholder="#c8864a"
-                      className="font-mono"
-                      {...register("secondary_color")}
-                    />
+
+                  {/* Custom pickers */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="primary_color">Color primario</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          id="primary_color"
+                          className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                          {...register("primary_color")}
+                        />
+                        <Input
+                          placeholder="#a0522d"
+                          className="font-mono"
+                          {...register("primary_color")}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="secondary_color">Color secundario</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          id="secondary_color"
+                          className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                          {...register("secondary_color")}
+                        />
+                        <Input
+                          placeholder="#c8864a"
+                          className="font-mono"
+                          {...register("secondary_color")}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Live preview */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Vista previa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ColorPreview
+                    primary={watchedPrimary || "#a0522d"}
+                    secondary={watchedSecondary || "#c8864a"}
+                    cafeName={watchedCafeName || ""}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          {/* CONTACTO */}
+          {/* ── CONTACTO ── */}
           <TabsContent value="contact">
             <div className="space-y-4">
               <Card>
@@ -536,7 +868,7 @@ export function AppearancePage() {
             </div>
           </TabsContent>
 
-          {/* SOBRE NOSOTROS */}
+          {/* ── SOBRE NOSOTROS ── */}
           <TabsContent value="about">
             <Card>
               <CardHeader>
@@ -567,17 +899,11 @@ export function AppearancePage() {
                 <div className="space-y-2">
                   <Label>Imagen de la sección</Label>
                   <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    {aboutImageUrl && (
-                      <img
-                        src={aboutImageUrl}
-                        alt="Sobre nosotros"
-                        className="h-32 w-full object-cover rounded-lg"
-                      />
-                    )}
-                    <Input
+                    <ImagePreview url={aboutImageUrl} alt="Sobre nosotros" />
+                    <UrlInput
                       placeholder="URL de la imagen"
                       value={aboutImageUrl ?? ""}
-                      onChange={(e) => setAboutImageUrl(e.target.value)}
+                      onChange={(v) => setAboutImageUrl(v || null)}
                     />
                   </div>
                 </div>
@@ -585,7 +911,7 @@ export function AppearancePage() {
             </Card>
           </TabsContent>
 
-          {/* GALERÍA */}
+          {/* ── GALERÍA ── */}
           <TabsContent value="gallery">
             <Card>
               <CardHeader>
@@ -594,57 +920,95 @@ export function AppearancePage() {
                   Galería de Fotos
                 </CardTitle>
                 <CardDescription>
-                  Agrega hasta 8 fotos del local ({galleryUrls.length}/8)
+                  Agrega hasta 8 fotos y arrastra para reordenar ({galleryUrls.length}/8)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
-                  <Input
+                  <UrlInput
                     placeholder="URL de la foto"
                     value={newGalleryUrl}
-                    onChange={(e) => setNewGalleryUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addGalleryUrl();
-                      }
-                    }}
+                    onChange={setNewGalleryUrl}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={addGalleryUrl}
-                    disabled={galleryUrls.length >= 8}
+                    disabled={galleryUrls.length >= 8 || !newGalleryUrl.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {galleryUrls.map((url, index) => (
-                    <div
-                      key={index}
-                      className="relative group rounded-lg overflow-hidden"
+
+                {/* Preview de la URL que se va a agregar */}
+                <AnimatePresence>
+                  {newGalleryUrl.trim() && isValidUrl(newGalleryUrl.trim()) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="rounded-lg border border-dashed p-2"
                     >
-                      <img
-                        src={url}
-                        alt={`Foto ${index + 1}`}
-                        className="h-24 w-full object-cover"
+                      <p className="text-xs text-muted-foreground mb-1">Vista previa:</p>
+                      <ImagePreview
+                        url={newGalleryUrl.trim()}
+                        alt="Preview"
+                        className="h-20 w-full object-cover rounded"
+                        fallbackClassName="h-20 w-full rounded bg-muted/50 flex items-center justify-center"
                       />
-                      <button
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Drag & drop reorder with framer-motion Reorder */}
+                <Reorder.Group
+                  axis="y"
+                  values={galleryUrls}
+                  onReorder={setGalleryUrls}
+                  className="space-y-2"
+                >
+                  {galleryUrls.map((url, index) => (
+                    <Reorder.Item
+                      key={url}
+                      value={url}
+                      className="flex items-center gap-3 p-2 rounded-lg border bg-card cursor-grab active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="h-14 w-20 shrink-0 rounded overflow-hidden">
+                        <ImagePreview
+                          url={url}
+                          alt={`Foto ${index + 1}`}
+                          className="h-14 w-20 object-cover"
+                          fallbackClassName="h-14 w-20 bg-muted/50 flex items-center justify-center"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+                        {url}
+                      </p>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive shrink-0"
                         onClick={() => removeGalleryUrl(index)}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Reorder.Item>
                   ))}
-                </div>
+                </Reorder.Group>
+
+                {galleryUrls.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Camera className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Agrega fotos de tu local</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* TESTIMONIOS */}
+          {/* ── TESTIMONIOS ── */}
           <TabsContent value="testimonials">
             <Card>
               <CardHeader>
@@ -671,16 +1035,28 @@ export function AppearancePage() {
                     Agregar reseña
                   </Button>
                 </div>
-                <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
                   {testimonials.map((t, index) => (
-                    <div
+                    <motion.div
                       key={index}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      layout
                       className="p-4 rounded-lg border space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">
-                          Reseña #{index + 1}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <p className="text-sm font-medium">
+                            Reseña #{index + 1}
+                          </p>
+                          <StarRating
+                            value={t.rating}
+                            onChange={(v) =>
+                              updateTestimonial(index, "rating", v)
+                            }
+                          />
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -703,41 +1079,36 @@ export function AppearancePage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Calificación (1-5)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={5}
-                            value={t.rating}
+                          <Label className="text-xs">Comentario</Label>
+                          <Textarea
+                            placeholder="El mejor café que he probado..."
+                            rows={2}
+                            value={t.comment}
                             onChange={(e) =>
                               updateTestimonial(
                                 index,
-                                "rating",
-                                parseInt(e.target.value),
+                                "comment",
+                                e.target.value,
                               )
                             }
                           />
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Comentario</Label>
-                        <Textarea
-                          placeholder="El mejor café que he probado..."
-                          rows={2}
-                          value={t.comment}
-                          onChange={(e) =>
-                            updateTestimonial(index, "comment", e.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </AnimatePresence>
+
+                {testimonials.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Quote className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Agrega reseñas de tus clientes</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* PRODUCTOS DESTACADOS */}
+          {/* ── PRODUCTOS DESTACADOS ── */}
           <TabsContent value="featured">
             <Card>
               <CardHeader>
@@ -826,9 +1197,18 @@ export function AppearancePage() {
           </TabsContent>
         </Tabs>
 
-        {/* BOTÓN GUARDAR GENERAL */}
-        <div className="flex justify-end mt-6">
-          <Button type="submit" disabled={isSaving} size="lg">
+        {/* ── SAVE BUTTON (sticky) ── */}
+        <motion.div
+          className="sticky bottom-4 flex justify-end mt-6 z-10"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Button
+            type="submit"
+            disabled={isSaving}
+            size="lg"
+            className="shadow-lg relative"
+          >
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -840,8 +1220,11 @@ export function AppearancePage() {
                 Guardar cambios
               </>
             )}
+            {hasUnsavedChanges && !isSaving && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-500 border-2 border-background animate-pulse" />
+            )}
           </Button>
-        </div>
+        </motion.div>
       </form>
     </motion.div>
   );
