@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
   Store,
   Image,
+  ImagePlus,
   Palette,
   Globe,
   Clock,
@@ -27,6 +28,9 @@ import {
   Check,
   X,
   ImageOff,
+  Monitor,
+  Tablet,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +48,17 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
+import { ImageUpload } from "@/components/shared/ImageUpload";
+import { useUploadImage } from "@/hooks/useUploadImage";
 import { Pagination } from "@/components/shared/Pagination";
 import { usePagination } from "@/hooks/usePagination";
 import type { CafeSettings, Product } from "@/types";
 
 type Testimonial = { name: string; comment: string; rating: number };
+type TestimonialWithId = Testimonial & { _id: string };
+
+let testimonialCounter = 0;
+const makeTestimonialId = () => `t_${Date.now()}_${++testimonialCounter}`;
 
 type FormData = Omit<
   CafeSettings,
@@ -217,7 +227,7 @@ function UrlInput({
   );
 }
 
-// ── Mini landing preview ──
+// ── Mini landing preview with colors ──
 function ColorPreview({
   primary,
   secondary,
@@ -229,7 +239,6 @@ function ColorPreview({
 }) {
   return (
     <div className="rounded-lg border overflow-hidden text-xs">
-      {/* Navbar */}
       <div
         className="px-3 py-2 flex items-center justify-between"
         style={{ backgroundColor: primary }}
@@ -238,10 +247,8 @@ function ColorPreview({
         <div className="flex gap-2">
           <div className="w-6 h-1.5 rounded-full bg-white/40" />
           <div className="w-6 h-1.5 rounded-full bg-white/40" />
-          <div className="w-6 h-1.5 rounded-full bg-white/40" />
         </div>
       </div>
-      {/* Hero */}
       <div className="px-3 py-4 bg-linear-to-b from-black/80 to-black/40 text-white text-center">
         <p className="font-bold text-sm">{cafeName || "Mi Café"}</p>
         <p className="text-[10px] opacity-70">El mejor café de la ciudad</p>
@@ -252,23 +259,18 @@ function ColorPreview({
           Ver menú
         </div>
       </div>
-      {/* Content blocks */}
       <div className="p-2 space-y-1.5 bg-background">
         <div className="flex gap-1.5">
           <div className="h-6 flex-1 rounded bg-muted" />
           <div className="h-6 flex-1 rounded bg-muted" />
           <div className="h-6 flex-1 rounded bg-muted" />
         </div>
-        <div
-          className="h-1 rounded-full"
-          style={{ backgroundColor: primary, opacity: 0.3 }}
-        />
+        <div className="h-1 rounded-full" style={{ backgroundColor: primary, opacity: 0.3 }} />
         <div className="flex gap-1.5">
           <div className="h-8 flex-1 rounded bg-muted" />
           <div className="h-8 flex-1 rounded bg-muted" />
         </div>
       </div>
-      {/* Footer */}
       <div className="px-3 py-1.5" style={{ backgroundColor: primary }}>
         <div className="flex gap-1">
           <div className="w-3 h-3 rounded-full bg-white/30" />
@@ -277,6 +279,247 @@ function ColorPreview({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Image upload with URL fallback ──
+function ImageUploadWithUrl({
+  value,
+  onChange,
+  folder,
+  recommendation,
+}: {
+  value: string | null;
+  onChange: (url: string | null) => void;
+  folder: string;
+  recommendation?: string;
+}) {
+  const { upload, isUploading } = useUploadImage();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [urlValue, setUrlValue] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file, folder);
+    if (result) {
+      onChange(result.url);
+      toast.success("Imagen subida correctamente");
+    }
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const applyUrl = () => {
+    const url = urlValue.trim();
+    if (!url || !isValidUrl(url)) {
+      toast.error("La URL no es válida");
+      return;
+    }
+    onChange(url);
+    setUrlValue("");
+    setShowUrlInput(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFile}
+        disabled={isUploading}
+      />
+
+      {/* Preview */}
+      {value && (
+        <div className="relative w-full h-40 rounded-lg overflow-hidden border group">
+          <img src={value} alt="Vista previa" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="opacity-0 group-hover:opacity-100 transition-opacity shadow-lg cursor-pointer"
+              onClick={() => onChange(null)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploading}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-muted/40 hover:bg-muted hover:border-primary/40 transition-all text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+        >
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ImagePlus className="h-4 w-4" />
+          )}
+          {isUploading ? "Subiendo..." : value ? "Cambiar archivo" : "Subir imagen"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowUrlInput(!showUrlInput)}
+          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all text-sm font-medium cursor-pointer ${
+            showUrlInput
+              ? "border-primary/50 bg-primary/10 text-foreground"
+              : "border-border bg-muted/40 hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Link className="h-4 w-4" />
+          Pegar URL
+        </button>
+      </div>
+
+      {/* URL input */}
+      <AnimatePresence>
+        {showUrlInput && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex gap-2">
+              <UrlInput
+                placeholder="https://ejemplo.com/imagen.jpg"
+                value={urlValue}
+                onChange={setUrlValue}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={applyUrl}
+                disabled={!urlValue.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {recommendation && (
+        <p className="text-xs text-muted-foreground">{recommendation}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Gallery uploader (Supabase Storage) ──
+function GalleryUploader({ onUpload }: { onUpload: (url: string) => void }) {
+  const { upload, isUploading } = useUploadImage();
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file, "cafe/gallery");
+    if (result) {
+      onUpload(result.url);
+      toast.success("Imagen subida correctamente");
+    }
+    e.target.value = "";
+  };
+
+  return (
+    <label className="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30 transition-colors cursor-pointer">
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFile}
+        disabled={isUploading}
+      />
+      {isUploading ? (
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      ) : (
+        <Plus className="h-5 w-5 text-muted-foreground" />
+      )}
+      <span className="text-sm text-muted-foreground">
+        {isUploading ? "Subiendo..." : "Subir imagen"}
+      </span>
+    </label>
+  );
+}
+
+// ── Responsive landing preview ──
+const VIEWPORTS = [
+  { key: "desktop", icon: Monitor, width: "100%", label: "Desktop" },
+  { key: "tablet", icon: Tablet, width: "768px", label: "Tablet" },
+  { key: "mobile", icon: Smartphone, width: "375px", label: "Móvil" },
+] as const;
+
+function ResponsivePreview() {
+  const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const current = VIEWPORTS.find((v) => v.key === viewport)!;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <ExternalLink className="h-4 w-4" />
+            Vista previa del landing
+          </CardTitle>
+          <div className="flex gap-1 p-1 rounded-lg bg-muted/50 border border-border/50">
+            {VIEWPORTS.map((vp) => {
+              const Icon = vp.icon;
+              const isActive = viewport === vp.key;
+              return (
+                <button
+                  key={vp.key}
+                  type="button"
+                  onClick={() => setViewport(vp.key)}
+                  className={`relative p-1.5 rounded-md transition-colors ${
+                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="preview-viewport-pill"
+                      className="absolute inset-0 rounded-md bg-background shadow-sm border border-border/80"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <Icon className="relative h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-center">
+          <motion.div
+            animate={{ width: current.width }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="w-full overflow-hidden rounded-lg border bg-white"
+            style={{ maxWidth: current.width }}
+          >
+            <iframe
+              src="/"
+              title="Landing preview"
+              className="w-full border-0"
+              style={{ height: viewport === "mobile" ? "700px" : "600px" }}
+            />
+          </motion.div>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          {current.label} — {current.width === "100%" ? "ancho completo" : current.width}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -296,7 +539,7 @@ export function AppearancePage() {
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [newGalleryUrl, setNewGalleryUrl] = useState("");
   const [showPromotions, setShowPromotions] = useState(true);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialWithId[]>([]);
 
   const { register, handleSubmit, reset, watch, getValues } = useForm<FormData>();
 
@@ -335,7 +578,9 @@ export function AppearancePage() {
     setAboutImageUrl(settings.about_image_url ?? null);
     setGalleryUrls(settings.gallery_urls ?? []);
     setShowPromotions(settings.show_promotions ?? true);
-    setTestimonials(settings.testimonials ?? []);
+    setTestimonials(
+      (settings.testimonials ?? []).map((t) => ({ ...t, _id: makeTestimonialId() })),
+    );
   }
 
   // ── Unsaved changes detection ──
@@ -375,7 +620,7 @@ export function AppearancePage() {
         about_image_url: aboutImageUrl,
         gallery_urls: galleryUrls,
         show_promotions: showPromotions,
-        testimonials,
+        testimonials: testimonials.map(({ _id, ...rest }) => rest),
         featured_product_ids: featuredIds,
       });
       toast.success("Configuración guardada correctamente");
@@ -410,21 +655,24 @@ export function AppearancePage() {
   }, []);
 
   const addTestimonial = () => {
-    setTestimonials((prev) => [...prev, { name: "", comment: "", rating: 5 }]);
+    setTestimonials((prev) => [
+      ...prev,
+      { name: "", comment: "", rating: 5, _id: makeTestimonialId() },
+    ]);
   };
 
   const updateTestimonial = (
-    index: number,
+    id: string,
     field: "name" | "comment" | "rating",
     value: string | number,
   ) => {
     setTestimonials((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)),
+      prev.map((t) => (t._id === id ? { ...t, [field]: value } : t)),
     );
   };
 
-  const removeTestimonial = (index: number) => {
-    setTestimonials((prev) => prev.filter((_, i) => i !== index));
+  const removeTestimonial = (id: string) => {
+    setTestimonials((prev) => prev.filter((t) => t._id !== id));
   };
 
   const applyPalette = (primary: string, secondary: string) => {
@@ -553,42 +801,27 @@ export function AppearancePage() {
                   Imágenes Principales
                 </CardTitle>
                 <CardDescription>
-                  Logo y foto de portada de la landing page
+                  Sube imágenes directamente o pega una URL
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Logo del café</Label>
-                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    <ImagePreview
-                      url={logoUrl}
-                      alt="Logo"
-                      className="h-24 w-24 object-cover rounded-lg mx-auto"
-                      fallbackClassName="h-24 w-24 rounded-lg bg-muted/50 flex items-center justify-center mx-auto"
-                    />
-                    <UrlInput
-                      placeholder="URL del logo"
-                      value={logoUrl ?? ""}
-                      onChange={(v) => setLogoUrl(v || null)}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Recomendado: formato cuadrado, mínimo 200x200px
-                  </p>
+                  <ImageUploadWithUrl
+                    value={logoUrl}
+                    onChange={setLogoUrl}
+                    folder="cafe/logo"
+                    recommendation="Recomendado: formato cuadrado, mínimo 200x200px"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Imagen de portada</Label>
-                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    <ImagePreview url={coverUrl} alt="Portada" />
-                    <UrlInput
-                      placeholder="URL de la portada"
-                      value={coverUrl ?? ""}
-                      onChange={(v) => setCoverUrl(v || null)}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Recomendado: 1920x1080px o similar panorámico
-                  </p>
+                  <ImageUploadWithUrl
+                    value={coverUrl}
+                    onChange={setCoverUrl}
+                    folder="cafe/cover"
+                    recommendation="Recomendado: 1920x1080px o similar panorámico"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -898,14 +1131,12 @@ export function AppearancePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Imagen de la sección</Label>
-                  <div className="flex flex-col gap-3 p-4 border-2 border-dashed rounded-lg">
-                    <ImagePreview url={aboutImageUrl} alt="Sobre nosotros" />
-                    <UrlInput
-                      placeholder="URL de la imagen"
-                      value={aboutImageUrl ?? ""}
-                      onChange={(v) => setAboutImageUrl(v || null)}
-                    />
-                  </div>
+                  <ImageUploadWithUrl
+                    value={aboutImageUrl}
+                    onChange={setAboutImageUrl}
+                    folder="cafe/about"
+                    recommendation="Recomendado: imagen horizontal del local o equipo"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -920,13 +1151,21 @@ export function AppearancePage() {
                   Galería de Fotos
                 </CardTitle>
                 <CardDescription>
-                  Agrega hasta 8 fotos y arrastra para reordenar ({galleryUrls.length}/8)
+                  Sube hasta 8 fotos y arrastra para reordenar ({galleryUrls.length}/8)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Upload nueva imagen */}
+                {galleryUrls.length < 8 && (
+                  <GalleryUploader
+                    onUpload={(url) => setGalleryUrls((prev) => [...prev, url])}
+                  />
+                )}
+
+                {/* O agregar por URL */}
                 <div className="flex gap-2">
                   <UrlInput
-                    placeholder="URL de la foto"
+                    placeholder="O pega una URL de imagen"
                     value={newGalleryUrl}
                     onChange={setNewGalleryUrl}
                   />
@@ -940,27 +1179,7 @@ export function AppearancePage() {
                   </Button>
                 </div>
 
-                {/* Preview de la URL que se va a agregar */}
-                <AnimatePresence>
-                  {newGalleryUrl.trim() && isValidUrl(newGalleryUrl.trim()) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="rounded-lg border border-dashed p-2"
-                    >
-                      <p className="text-xs text-muted-foreground mb-1">Vista previa:</p>
-                      <ImagePreview
-                        url={newGalleryUrl.trim()}
-                        alt="Preview"
-                        className="h-20 w-full object-cover rounded"
-                        fallbackClassName="h-20 w-full rounded bg-muted/50 flex items-center justify-center"
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Drag & drop reorder with framer-motion Reorder */}
+                {/* Drag & drop reorder */}
                 <Reorder.Group
                   axis="y"
                   values={galleryUrls}
@@ -1001,7 +1220,7 @@ export function AppearancePage() {
                 {galleryUrls.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Camera className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Agrega fotos de tu local</p>
+                    <p className="text-sm">Sube fotos de tu local</p>
                   </div>
                 )}
               </CardContent>
@@ -1017,7 +1236,7 @@ export function AppearancePage() {
                   Reseñas de Clientes
                 </CardTitle>
                 <CardDescription>
-                  Agrega testimonios de clientes satisfechos
+                  Agrega testimonios y arrastra para reordenar
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1035,25 +1254,28 @@ export function AppearancePage() {
                     Agregar reseña
                   </Button>
                 </div>
-                <AnimatePresence mode="popLayout">
+                <Reorder.Group
+                  axis="y"
+                  values={testimonials}
+                  onReorder={setTestimonials}
+                  className="space-y-3"
+                >
                   {testimonials.map((t, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      layout
-                      className="p-4 rounded-lg border space-y-3"
+                    <Reorder.Item
+                      key={t._id}
+                      value={t}
+                      className="p-4 rounded-lg border space-y-3 bg-card cursor-grab active:cursor-grabbing"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
+                          <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
                           <p className="text-sm font-medium">
                             Reseña #{index + 1}
                           </p>
                           <StarRating
                             value={t.rating}
                             onChange={(v) =>
-                              updateTestimonial(index, "rating", v)
+                              updateTestimonial(t._id, "rating", v)
                             }
                           />
                         </div>
@@ -1062,7 +1284,7 @@ export function AppearancePage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => removeTestimonial(index)}
+                          onClick={() => removeTestimonial(t._id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1074,7 +1296,7 @@ export function AppearancePage() {
                             placeholder="María García"
                             value={t.name}
                             onChange={(e) =>
-                              updateTestimonial(index, "name", e.target.value)
+                              updateTestimonial(t._id, "name", e.target.value)
                             }
                           />
                         </div>
@@ -1085,18 +1307,14 @@ export function AppearancePage() {
                             rows={2}
                             value={t.comment}
                             onChange={(e) =>
-                              updateTestimonial(
-                                index,
-                                "comment",
-                                e.target.value,
-                              )
+                              updateTestimonial(t._id, "comment", e.target.value)
                             }
                           />
                         </div>
                       </div>
-                    </motion.div>
+                    </Reorder.Item>
                   ))}
-                </AnimatePresence>
+                </Reorder.Group>
 
                 {testimonials.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
@@ -1196,6 +1414,11 @@ export function AppearancePage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* ── Responsive Preview ── */}
+        <div className="mt-6">
+          <ResponsivePreview />
+        </div>
 
         {/* ── SAVE BUTTON (sticky) ── */}
         <motion.div
