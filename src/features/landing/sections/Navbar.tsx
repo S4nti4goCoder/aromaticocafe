@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Coffee, Menu, X, Calendar } from "lucide-react";
 import type { CafeSettings } from "@/types";
-import { CAFE, type NavLink } from "../cafeTheme";
+import type { CafeTheme, NavLink } from "../cafeTheme";
 
 interface NavbarProps {
   settings: CafeSettings | undefined;
@@ -13,6 +13,7 @@ interface NavbarProps {
   onNavClick: (id: string) => void;
   onScrollToTop: () => void;
   onOpenReserva: () => void;
+  theme: CafeTheme;
 }
 
 export function Navbar({
@@ -24,6 +25,7 @@ export function Navbar({
   onNavClick,
   onScrollToTop,
   onOpenReserva,
+  theme,
 }: NavbarProps) {
   return (
     <motion.nav
@@ -34,7 +36,7 @@ export function Navbar({
       style={{
         backgroundColor: scrolled ? "rgba(15,13,11,0.92)" : "transparent",
         backdropFilter: scrolled ? "blur(24px)" : "none",
-        borderBottom: scrolled ? `1px solid ${CAFE.border}` : "none",
+        borderBottom: scrolled ? `1px solid ${theme.border}` : "none",
         paddingTop: scrolled ? "14px" : "24px",
         paddingBottom: scrolled ? "14px" : "24px",
       }}
@@ -51,13 +53,13 @@ export function Navbar({
               alt="Logo"
               decoding="async"
               className="h-9 w-9 rounded-full object-cover transition-all group-hover:opacity-80"
-              style={{ border: `2px solid ${CAFE.borderGold}` }}
+              style={{ border: `2px solid ${theme.borderGold}` }}
             />
           ) : (
             <div
               className="h-9 w-9 rounded-full flex items-center justify-center transition-all group-hover:scale-105"
               style={{
-                background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
               }}
             >
               <Coffee className="h-4 w-4 text-black" />
@@ -65,7 +67,7 @@ export function Navbar({
           )}
           <span
             className="font-bold text-sm tracking-wide transition-opacity group-hover:opacity-70"
-            style={{ color: CAFE.text }}
+            style={{ color: theme.text }}
           >
             {settings?.cafe_name ?? "Aromático Café"}
           </span>
@@ -79,7 +81,7 @@ export function Navbar({
                 key={link.id}
                 onClick={() => onNavClick(link.id)}
                 className="text-sm px-4 py-2 rounded-full transition-all duration-200 font-semibold cursor-pointer hover:text-white"
-                style={{ color: CAFE.text }}
+                style={{ color: theme.text }}
               >
                 {link.label}
               </button>
@@ -96,7 +98,7 @@ export function Navbar({
               whileTap={{ scale: 0.97 }}
               className="hidden sm:flex items-center gap-2 text-xs px-5 py-2.5 rounded-full font-semibold cursor-pointer"
               style={{
-                background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
                 color: "#0f0d0b",
               }}
             >
@@ -108,8 +110,8 @@ export function Navbar({
             to="/login"
             className="text-xs px-5 py-2.5 rounded-full transition-all duration-300 font-medium cursor-pointer"
             style={{
-              border: `1px solid ${CAFE.border}`,
-              color: CAFE.textMuted,
+              border: `1px solid ${theme.border}`,
+              color: theme.textMuted,
             }}
           >
             Acceder
@@ -120,9 +122,9 @@ export function Navbar({
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className="md:hidden p-2.5 rounded-full transition-all cursor-pointer"
               style={{
-                backgroundColor: CAFE.bgCard,
-                border: `1px solid ${CAFE.border}`,
-                color: CAFE.textMuted,
+                backgroundColor: theme.bgCard,
+                border: `1px solid ${theme.border}`,
+                color: theme.textMuted,
               }}
             >
               {mobileMenuOpen ? (
@@ -144,7 +146,7 @@ export function Navbar({
           className="md:hidden px-6 pb-5 pt-3 flex flex-col gap-1"
           style={{
             backgroundColor: "rgba(15,13,11,0.97)",
-            borderBottom: `1px solid ${CAFE.border}`,
+            borderBottom: `1px solid ${theme.border}`,
           }}
         >
           {navLinks.map((link) => (
@@ -152,7 +154,7 @@ export function Navbar({
               key={link.id}
               onClick={() => onNavClick(link.id)}
               className="text-sm text-left px-4 py-3 rounded-xl transition-all font-medium cursor-pointer hover:text-white"
-              style={{ color: CAFE.textMuted }}
+              style={{ color: theme.textMuted }}
             >
               {link.label}
             </button>
@@ -165,7 +167,7 @@ export function Navbar({
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl font-semibold mt-2 cursor-pointer"
               style={{
-                background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
                 color: "#0f0d0b",
               }}
             >

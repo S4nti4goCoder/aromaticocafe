@@ -1,3 +1,4 @@
+// Default (fallback) theme – used while settings load
 export const CAFE = {
   bg: "#0f0d0b",
   bgCard: "#1a1612",
@@ -13,6 +14,19 @@ export const CAFE = {
   textFaint: "#5a4f42",
   white: "#ffffff",
 };
+
+/** Build a theme using dynamic primary/secondary from cafe_settings */
+export function buildCafeTheme(primary?: string, secondary?: string) {
+  return {
+    ...CAFE,
+    gold: primary || CAFE.gold,
+    goldLight: primary ? `${primary}cc` : CAFE.goldLight,
+    amber: secondary || CAFE.amber,
+    borderGold: primary ? `${primary}88` : CAFE.borderGold,
+  };
+}
+
+export type CafeTheme = ReturnType<typeof buildCafeTheme>;
 
 export type NavLink = {
   id: string;

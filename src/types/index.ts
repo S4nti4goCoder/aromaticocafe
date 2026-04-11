@@ -341,5 +341,6 @@ export interface CafeSettings {
   reservation_title: string | null;
   reservation_description: string | null;
   reservation_whatsapp: string | null;
+  custom_palettes: { name: string; primary: string; secondary: string }[];
   updated_at: string;
 }

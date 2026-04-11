@@ -8,18 +8,19 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { CafeSettings } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface ContactSectionProps {
   settings: CafeSettings | undefined;
+  theme: CafeTheme;
 }
 
-export function ContactSection({ settings }: ContactSectionProps) {
+export function ContactSection({ settings, theme }: ContactSectionProps) {
   return (
     <section
       id="contacto"
       className="min-h-screen px-6 flex flex-col justify-center py-24"
-      style={{ backgroundColor: CAFE.bg }}
+      style={{ backgroundColor: theme.bg }}
     >
       <div className="max-w-7xl mx-auto w-full">
         <motion.div
@@ -30,13 +31,13 @@ export function ContactSection({ settings }: ContactSectionProps) {
         >
           <p
             className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
-            style={{ color: CAFE.gold }}
+            style={{ color: theme.gold }}
           >
             Encuéntranos
           </p>
           <h2
             className="text-4xl sm:text-6xl font-black"
-            style={{ color: CAFE.text }}
+            style={{ color: theme.text }}
           >
             Visítanos
           </h2>
@@ -51,28 +52,28 @@ export function ContactSection({ settings }: ContactSectionProps) {
             transition={{ duration: 0.7 }}
             className="rounded-2xl p-8"
             style={{
-              backgroundColor: CAFE.bgCard,
-              border: `1px solid ${CAFE.border}`,
+              backgroundColor: theme.bgCard,
+              border: `1px solid ${theme.border}`,
             }}
           >
             <div className="flex items-center gap-4 mb-8">
               <div
                 className="p-3 rounded-xl"
                 style={{
-                  backgroundColor: `${CAFE.gold}10`,
-                  border: `1px solid ${CAFE.borderGold}`,
+                  backgroundColor: `${theme.gold}10`,
+                  border: `1px solid ${theme.borderGold}`,
                 }}
               >
-                <Clock className="h-5 w-5" style={{ color: CAFE.gold }} />
+                <Clock className="h-5 w-5" style={{ color: theme.gold }} />
               </div>
               <div>
                 <h3
                   className="font-bold text-lg"
-                  style={{ color: CAFE.text }}
+                  style={{ color: theme.text }}
                 >
                   Horarios
                 </h3>
-                <p className="text-xs" style={{ color: CAFE.textFaint }}>
+                <p className="text-xs" style={{ color: theme.textFaint }}>
                   Siempre listos para servirte
                 </p>
               </div>
@@ -87,9 +88,9 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 <div
                   key={i}
                   className="flex justify-between items-center py-4"
-                  style={{ borderBottom: `1px solid ${CAFE.border}` }}
+                  style={{ borderBottom: `1px solid ${theme.border}` }}
                 >
-                  <span className="text-sm" style={{ color: CAFE.textMuted }}>
+                  <span className="text-sm" style={{ color: theme.textMuted }}>
                     {horario.label}
                   </span>
                   <span
@@ -98,15 +99,15 @@ export function ContactSection({ settings }: ContactSectionProps) {
                       backgroundColor:
                         horario.value?.toLowerCase() === "cerrado"
                           ? "rgba(220,38,38,0.1)"
-                          : `${CAFE.gold}10`,
+                          : `${theme.gold}10`,
                       color:
                         horario.value?.toLowerCase() === "cerrado"
                           ? "#ef4444"
-                          : CAFE.gold,
+                          : theme.gold,
                       border: `1px solid ${
                         horario.value?.toLowerCase() === "cerrado"
                           ? "rgba(220,38,38,0.2)"
-                          : CAFE.borderGold
+                          : theme.borderGold
                       }`,
                     }}
                   >
@@ -124,28 +125,28 @@ export function ContactSection({ settings }: ContactSectionProps) {
             transition={{ duration: 0.7 }}
             className="rounded-2xl p-8"
             style={{
-              backgroundColor: CAFE.bgCard,
-              border: `1px solid ${CAFE.border}`,
+              backgroundColor: theme.bgCard,
+              border: `1px solid ${theme.border}`,
             }}
           >
             <div className="flex items-center gap-4 mb-8">
               <div
                 className="p-3 rounded-xl"
                 style={{
-                  backgroundColor: `${CAFE.gold}10`,
-                  border: `1px solid ${CAFE.borderGold}`,
+                  backgroundColor: `${theme.gold}10`,
+                  border: `1px solid ${theme.borderGold}`,
                 }}
               >
-                <Phone className="h-5 w-5" style={{ color: CAFE.gold }} />
+                <Phone className="h-5 w-5" style={{ color: theme.gold }} />
               </div>
               <div>
                 <h3
                   className="font-bold text-lg"
-                  style={{ color: CAFE.text }}
+                  style={{ color: theme.text }}
                 >
                   Contacto
                 </h3>
-                <p className="text-xs" style={{ color: CAFE.textFaint }}>
+                <p className="text-xs" style={{ color: theme.textFaint }}>
                   Con gusto te atendemos
                 </p>
               </div>
@@ -155,15 +156,15 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 <div
                   className="flex items-start gap-4 p-4 rounded-xl"
                   style={{
-                    backgroundColor: CAFE.bgLight,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: theme.bgLight,
+                    border: `1px solid ${theme.border}`,
                   }}
                 >
                   <MapPin
                     className="h-4 w-4 mt-0.5 shrink-0"
-                    style={{ color: CAFE.gold }}
+                    style={{ color: theme.gold }}
                   />
-                  <span className="text-sm" style={{ color: CAFE.textMuted }}>
+                  <span className="text-sm" style={{ color: theme.textMuted }}>
                     {settings.address}
                   </span>
                 </div>
@@ -174,15 +175,15 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   whileHover={{ x: 4 }}
                   className="flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer"
                   style={{
-                    backgroundColor: CAFE.bgLight,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: theme.bgLight,
+                    border: `1px solid ${theme.border}`,
                   }}
                 >
                   <Phone
                     className="h-4 w-4 shrink-0"
-                    style={{ color: CAFE.gold }}
+                    style={{ color: theme.gold }}
                   />
-                  <span className="text-sm" style={{ color: CAFE.textMuted }}>
+                  <span className="text-sm" style={{ color: theme.textMuted }}>
                     {settings.phone}
                   </span>
                 </motion.a>
@@ -193,15 +194,15 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   whileHover={{ x: 4 }}
                   className="flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer"
                   style={{
-                    backgroundColor: CAFE.bgLight,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: theme.bgLight,
+                    border: `1px solid ${theme.border}`,
                   }}
                 >
                   <Mail
                     className="h-4 w-4 shrink-0"
-                    style={{ color: CAFE.gold }}
+                    style={{ color: theme.gold }}
                   />
-                  <span className="text-sm" style={{ color: CAFE.textMuted }}>
+                  <span className="text-sm" style={{ color: theme.textMuted }}>
                     {settings.email}
                   </span>
                 </motion.a>
@@ -210,11 +211,11 @@ export function ContactSection({ settings }: ContactSectionProps) {
             {(settings?.instagram_url || settings?.facebook_url) && (
               <div
                 className="pt-5"
-                style={{ borderTop: `1px solid ${CAFE.border}` }}
+                style={{ borderTop: `1px solid ${theme.border}` }}
               >
                 <p
                   className="text-xs uppercase tracking-widest mb-4 font-medium"
-                  style={{ color: CAFE.textFaint }}
+                  style={{ color: theme.textFaint }}
                 >
                   Síguenos
                 </p>
@@ -228,9 +229,9 @@ export function ContactSection({ settings }: ContactSectionProps) {
                       whileTap={{ scale: 0.95 }}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium cursor-pointer"
                       style={{
-                        backgroundColor: CAFE.bgLight,
-                        border: `1px solid ${CAFE.border}`,
-                        color: CAFE.textMuted,
+                        backgroundColor: theme.bgLight,
+                        border: `1px solid ${theme.border}`,
+                        color: theme.textMuted,
                       }}
                     >
                       <AtSign className="h-3.5 w-3.5" />
@@ -246,9 +247,9 @@ export function ContactSection({ settings }: ContactSectionProps) {
                       whileTap={{ scale: 0.95 }}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium cursor-pointer"
                       style={{
-                        backgroundColor: CAFE.bgLight,
-                        border: `1px solid ${CAFE.border}`,
-                        color: CAFE.textMuted,
+                        backgroundColor: theme.bgLight,
+                        border: `1px solid ${theme.border}`,
+                        color: theme.textMuted,
                       }}
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -270,7 +271,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
             transition={{ duration: 0.7 }}
             className="rounded-2xl overflow-hidden"
             style={{
-              border: `1px solid ${CAFE.border}`,
+              border: `1px solid ${theme.border}`,
               height: "400px",
             }}
           >

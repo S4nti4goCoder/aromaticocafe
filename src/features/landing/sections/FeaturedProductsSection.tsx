@@ -1,20 +1,22 @@
 import { motion } from "framer-motion";
 import { Coffee } from "lucide-react";
 import type { Product } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface FeaturedProductsSectionProps {
   products: Product[];
+  theme: CafeTheme;
 }
 
 export function FeaturedProductsSection({
   products,
+  theme,
 }: FeaturedProductsSectionProps) {
   return (
     <section
       id="menu"
       className="min-h-screen px-6 flex flex-col justify-center py-24"
-      style={{ backgroundColor: CAFE.bg }}
+      style={{ backgroundColor: theme.bg }}
     >
       <div className="max-w-7xl mx-auto w-full">
         <motion.div
@@ -25,15 +27,15 @@ export function FeaturedProductsSection({
         >
           <p
             className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
-            style={{ color: CAFE.gold }}
+            style={{ color: theme.gold }}
           >
             Selección especial
           </p>
           <h2
             className="text-4xl sm:text-6xl font-black leading-tight"
-            style={{ color: CAFE.text }}
+            style={{ color: theme.text }}
           >
-            Nuestros <span style={{ color: CAFE.gold }}>Favoritos</span>
+            Nuestros <span style={{ color: theme.gold }}>Favoritos</span>
           </h2>
         </motion.div>
 
@@ -48,8 +50,8 @@ export function FeaturedProductsSection({
               whileHover={{ y: -6 }}
               className="group rounded-2xl overflow-hidden cursor-pointer"
               style={{
-                backgroundColor: CAFE.bgCard,
-                border: `1px solid ${CAFE.border}`,
+                backgroundColor: theme.bgCard,
+                border: `1px solid ${theme.border}`,
               }}
             >
               <div className="relative h-56 overflow-hidden">
@@ -64,24 +66,24 @@ export function FeaturedProductsSection({
                 ) : (
                   <div
                     className="w-full h-full flex items-center justify-center"
-                    style={{ backgroundColor: CAFE.bgLight }}
+                    style={{ backgroundColor: theme.bgLight }}
                   >
                     <Coffee
                       className="h-16 w-16 opacity-10"
-                      style={{ color: CAFE.gold }}
+                      style={{ color: theme.gold }}
                     />
                   </div>
                 )}
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{
-                    background: `linear-gradient(to top, ${CAFE.bg}90, transparent)`,
+                    background: `linear-gradient(to top, ${theme.bg}90, transparent)`,
                   }}
                 />
                 <div
                   className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold"
                   style={{
-                    background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                    background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
                     color: "#0f0d0b",
                   }}
                 >
@@ -91,14 +93,14 @@ export function FeaturedProductsSection({
               <div className="p-6">
                 <h3
                   className="font-bold text-lg mb-2"
-                  style={{ color: CAFE.text }}
+                  style={{ color: theme.text }}
                 >
                   {product.name}
                 </h3>
                 {product.description && (
                   <p
                     className="text-sm line-clamp-2 leading-relaxed"
-                    style={{ color: CAFE.textMuted }}
+                    style={{ color: theme.textMuted }}
                   >
                     {product.description}
                   </p>
@@ -107,7 +109,7 @@ export function FeaturedProductsSection({
               <div
                 className="h-0.5 w-0 group-hover:w-full transition-all duration-500"
                 style={{
-                  background: `linear-gradient(90deg, ${CAFE.gold}, ${CAFE.amber})`,
+                  background: `linear-gradient(90deg, ${theme.gold}, ${theme.amber})`,
                 }}
               />
             </motion.div>

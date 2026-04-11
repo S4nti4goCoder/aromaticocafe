@@ -1,18 +1,19 @@
 import { motion } from "framer-motion";
 import { Coffee, Users } from "lucide-react";
 import type { CafeSettings } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface AboutSectionProps {
   settings: CafeSettings;
+  theme: CafeTheme;
 }
 
-export function AboutSection({ settings }: AboutSectionProps) {
+export function AboutSection({ settings, theme }: AboutSectionProps) {
   return (
     <section
       id="nosotros"
       className="min-h-screen px-6 flex flex-col justify-center py-24"
-      style={{ backgroundColor: CAFE.bgSection }}
+      style={{ backgroundColor: theme.bgSection }}
     >
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -24,25 +25,25 @@ export function AboutSection({ settings }: AboutSectionProps) {
           >
             <p
               className="text-xs font-bold tracking-[0.4em] uppercase mb-5"
-              style={{ color: CAFE.gold }}
+              style={{ color: theme.gold }}
             >
               Quiénes somos
             </p>
             <h2
               className="text-4xl sm:text-6xl font-black mb-8 leading-tight"
-              style={{ color: CAFE.text }}
+              style={{ color: theme.text }}
             >
               {settings.about_title}
             </h2>
             <div
               className="h-px w-16 mb-8"
               style={{
-                background: `linear-gradient(90deg, ${CAFE.gold}, transparent)`,
+                background: `linear-gradient(90deg, ${theme.gold}, transparent)`,
               }}
             />
             <p
               className="leading-relaxed text-base"
-              style={{ color: CAFE.textMuted }}
+              style={{ color: theme.textMuted }}
             >
               {settings.about_description}
             </p>
@@ -60,19 +61,19 @@ export function AboutSection({ settings }: AboutSectionProps) {
                   transition={{ delay: i * 0.1 }}
                   className="text-center p-5 rounded-2xl"
                   style={{
-                    backgroundColor: CAFE.bgCard,
-                    border: `1px solid ${CAFE.border}`,
+                    backgroundColor: theme.bgCard,
+                    border: `1px solid ${theme.border}`,
                   }}
                 >
                   <p
                     className="text-3xl font-black"
-                    style={{ color: CAFE.gold }}
+                    style={{ color: theme.gold }}
                   >
                     {stat.value}
                   </p>
                   <p
                     className="text-xs mt-1 font-medium"
-                    style={{ color: CAFE.textFaint }}
+                    style={{ color: theme.textFaint }}
                   >
                     {stat.label}
                   </p>
@@ -95,12 +96,12 @@ export function AboutSection({ settings }: AboutSectionProps) {
                 loading="lazy"
                 decoding="async"
                 className="w-full h-125 object-cover rounded-3xl"
-                style={{ border: `1px solid ${CAFE.border}` }}
+                style={{ border: `1px solid ${theme.border}` }}
               />
               <div
                 className="absolute -bottom-5 -right-5 p-5 rounded-2xl shadow-2xl"
                 style={{
-                  background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+                  background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
                 }}
               >
                 <Users className="h-6 w-6 text-black" />
@@ -114,13 +115,13 @@ export function AboutSection({ settings }: AboutSectionProps) {
               transition={{ duration: 0.8 }}
               className="relative h-100 rounded-3xl flex items-center justify-center"
               style={{
-                backgroundColor: CAFE.bgCard,
-                border: `1px solid ${CAFE.border}`,
+                backgroundColor: theme.bgCard,
+                border: `1px solid ${theme.border}`,
               }}
             >
               <Coffee
                 className="h-24 w-24 opacity-10"
-                style={{ color: CAFE.gold }}
+                style={{ color: theme.gold }}
               />
             </motion.div>
           )}

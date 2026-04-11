@@ -63,6 +63,7 @@ export type Database = {
           address: string | null
           cafe_name: string
           cover_url: string | null
+          custom_palettes: Json | null
           email: string | null
           facebook_url: string | null
           featured_product_ids: string[] | null
@@ -93,6 +94,7 @@ export type Database = {
           address?: string | null
           cafe_name?: string
           cover_url?: string | null
+          custom_palettes?: Json | null
           email?: string | null
           facebook_url?: string | null
           featured_product_ids?: string[] | null
@@ -123,6 +125,7 @@ export type Database = {
           address?: string | null
           cafe_name?: string
           cover_url?: string | null
+          custom_palettes?: Json | null
           email?: string | null
           facebook_url?: string | null
           featured_product_ids?: string[] | null

@@ -1,18 +1,19 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import type { Promotion } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface PromotionsSectionProps {
   promotions: Promotion[];
+  theme: CafeTheme;
 }
 
-export function PromotionsSection({ promotions }: PromotionsSectionProps) {
+export function PromotionsSection({ promotions, theme }: PromotionsSectionProps) {
   return (
     <section
       id="promociones"
       className="min-h-screen px-6 flex flex-col justify-center py-24"
-      style={{ backgroundColor: CAFE.bgSection }}
+      style={{ backgroundColor: theme.bgSection }}
     >
       <div className="max-w-7xl mx-auto w-full">
         <motion.div
@@ -23,13 +24,13 @@ export function PromotionsSection({ promotions }: PromotionsSectionProps) {
         >
           <p
             className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
-            style={{ color: CAFE.gold }}
+            style={{ color: theme.gold }}
           >
             Ofertas especiales
           </p>
           <h2
             className="text-4xl sm:text-6xl font-black"
-            style={{ color: CAFE.text }}
+            style={{ color: theme.text }}
           >
             Promociones
           </h2>
@@ -46,21 +47,21 @@ export function PromotionsSection({ promotions }: PromotionsSectionProps) {
               whileHover={{ y: -4 }}
               className="p-7 rounded-2xl relative overflow-hidden"
               style={{
-                backgroundColor: CAFE.bgCard,
-                border: `1px solid ${CAFE.border}`,
+                backgroundColor: theme.bgCard,
+                border: `1px solid ${theme.border}`,
               }}
             >
               <div
                 className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-12 translate-x-12 opacity-5"
-                style={{ backgroundColor: CAFE.gold }}
+                style={{ backgroundColor: theme.gold }}
               />
               <div className="relative z-10">
                 <div
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
                   style={{
-                    backgroundColor: `${CAFE.gold}12`,
-                    border: `1px solid ${CAFE.borderGold}`,
-                    color: CAFE.gold,
+                    backgroundColor: `${theme.gold}12`,
+                    border: `1px solid ${theme.borderGold}`,
+                    color: theme.gold,
                   }}
                 >
                   <Star className="h-3 w-3 fill-current" />
@@ -74,14 +75,14 @@ export function PromotionsSection({ promotions }: PromotionsSectionProps) {
                 </div>
                 <h3
                   className="font-bold text-xl mb-3"
-                  style={{ color: CAFE.text }}
+                  style={{ color: theme.text }}
                 >
                   {promo.name}
                 </h3>
                 {promo.description && (
                   <p
                     className="text-sm leading-relaxed"
-                    style={{ color: CAFE.textMuted }}
+                    style={{ color: theme.textMuted }}
                   >
                     {promo.description}
                   </p>

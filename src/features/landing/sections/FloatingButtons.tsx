@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import type { CafeSettings } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface FloatingButtonsProps {
   settings: CafeSettings | undefined;
   scrolled: boolean;
   hidden: boolean;
   onScrollToTop: () => void;
+  theme: CafeTheme;
 }
 
 export function FloatingButtons({
@@ -15,6 +16,7 @@ export function FloatingButtons({
   scrolled,
   hidden,
   onScrollToTop,
+  theme,
 }: FloatingButtonsProps) {
   return (
     <div
@@ -58,8 +60,8 @@ export function FloatingButtons({
         whileTap={{ scale: 0.95 }}
         className="p-4 rounded-full cursor-pointer"
         style={{
-          background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
-          boxShadow: `0 8px 32px ${CAFE.gold}35`,
+          background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
+          boxShadow: `0 8px 32px ${theme.gold}35`,
         }}
       >
         <ChevronDown className="h-6 w-6 text-black rotate-180" />

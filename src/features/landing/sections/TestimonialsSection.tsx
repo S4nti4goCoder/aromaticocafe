@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Quote, Star } from "lucide-react";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface Testimonial {
   name: string;
@@ -10,16 +10,18 @@ interface Testimonial {
 
 interface TestimonialsSectionProps {
   testimonials: Testimonial[];
+  theme: CafeTheme;
 }
 
 export function TestimonialsSection({
   testimonials,
+  theme,
 }: TestimonialsSectionProps) {
   return (
     <section
       id="resenas"
       className="min-h-screen px-6 flex flex-col justify-center py-24"
-      style={{ backgroundColor: CAFE.bgSection }}
+      style={{ backgroundColor: theme.bgSection }}
     >
       <div className="max-w-7xl mx-auto w-full">
         <motion.div
@@ -30,13 +32,13 @@ export function TestimonialsSection({
         >
           <p
             className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
-            style={{ color: CAFE.gold }}
+            style={{ color: theme.gold }}
           >
             Lo que dicen
           </p>
           <h2
             className="text-4xl sm:text-6xl font-black"
-            style={{ color: CAFE.text }}
+            style={{ color: theme.text }}
           >
             Nuestros Clientes
           </h2>
@@ -52,17 +54,17 @@ export function TestimonialsSection({
               transition={{ duration: 0.6, delay: index * 0.1 }}
               className="p-7 rounded-2xl"
               style={{
-                backgroundColor: CAFE.bgCard,
-                border: `1px solid ${CAFE.border}`,
+                backgroundColor: theme.bgCard,
+                border: `1px solid ${theme.border}`,
               }}
             >
               <Quote
                 className="h-8 w-8 mb-5 opacity-30"
-                style={{ color: CAFE.gold }}
+                style={{ color: theme.gold }}
               />
               <p
                 className="text-sm leading-relaxed mb-6 italic"
-                style={{ color: CAFE.textMuted }}
+                style={{ color: theme.textMuted }}
               >
                 "{testimonial.comment}"
               </p>
@@ -71,16 +73,16 @@ export function TestimonialsSection({
                   <div
                     className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm"
                     style={{
-                      background: `linear-gradient(135deg, ${CAFE.gold}20, ${CAFE.amber}20)`,
-                      border: `1px solid ${CAFE.borderGold}`,
-                      color: CAFE.gold,
+                      background: `linear-gradient(135deg, ${theme.gold}20, ${theme.amber}20)`,
+                      border: `1px solid ${theme.borderGold}`,
+                      color: theme.gold,
                     }}
                   >
                     {testimonial.name.charAt(0)}
                   </div>
                   <p
                     className="font-semibold text-sm"
-                    style={{ color: CAFE.text }}
+                    style={{ color: theme.text }}
                   >
                     {testimonial.name}
                   </p>
@@ -92,10 +94,10 @@ export function TestimonialsSection({
                       className="h-3.5 w-3.5"
                       style={{
                         color:
-                          i < testimonial.rating ? CAFE.gold : CAFE.border,
+                          i < testimonial.rating ? theme.gold : theme.border,
                         fill:
                           i < testimonial.rating
-                            ? CAFE.gold
+                            ? theme.gold
                             : "transparent",
                       }}
                     />

@@ -1,13 +1,14 @@
 import { motion, type MotionValue } from "framer-motion";
 import { Coffee, ChevronDown } from "lucide-react";
 import type { CafeSettings } from "@/types";
-import { CAFE } from "../cafeTheme";
+import type { CafeTheme } from "../cafeTheme";
 
 interface HeroSectionProps {
   settings: CafeSettings | undefined;
   heroOpacity: MotionValue<number>;
   heroScale: MotionValue<number>;
   onOpenMenu: () => void;
+  theme: CafeTheme;
 }
 
 export function HeroSection({
@@ -15,6 +16,7 @@ export function HeroSection({
   heroOpacity,
   heroScale,
   onOpenMenu,
+  theme,
 }: HeroSectionProps) {
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
@@ -27,14 +29,14 @@ export function HeroSection({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: CAFE.bgLight }}
+            style={{ backgroundColor: theme.bgLight }}
           >
             <div
               className="absolute inset-0"
               style={{
                 backgroundImage: `
-                  radial-gradient(ellipse at 20% 50%, ${CAFE.gold}10 0%, transparent 60%),
-                  radial-gradient(ellipse at 80% 20%, ${CAFE.amber}08 0%, transparent 50%)
+                  radial-gradient(ellipse at 20% 50%, ${theme.gold}10 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, ${theme.amber}08 0%, transparent 50%)
                 `,
               }}
             />
@@ -63,9 +65,9 @@ export function HeroSection({
           <div
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-widest uppercase"
             style={{
-              backgroundColor: `${CAFE.gold}15`,
-              border: `1px solid ${CAFE.borderGold}`,
-              color: CAFE.gold,
+              backgroundColor: `${theme.gold}15`,
+              border: `1px solid ${theme.borderGold}`,
+              color: theme.gold,
             }}
           >
             <Coffee className="h-3 w-3" />
@@ -79,7 +81,7 @@ export function HeroSection({
           transition={{ duration: 1, delay: 0.3 }}
           className="font-black tracking-tight leading-none mb-6"
           style={{
-            color: CAFE.white,
+            color: theme.white,
             fontSize: "clamp(3rem, 10vw, 8rem)",
             textShadow: "0 4px 40px rgba(0,0,0,0.5)",
           }}
@@ -111,9 +113,9 @@ export function HeroSection({
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-bold cursor-pointer"
             style={{
-              background: `linear-gradient(135deg, ${CAFE.gold}, ${CAFE.amber})`,
+              background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
               color: "#0f0d0b",
-              boxShadow: `0 8px 32px ${CAFE.gold}30`,
+              boxShadow: `0 8px 32px ${theme.gold}30`,
             }}
           >
             <Coffee className="h-4 w-4" />
@@ -129,11 +131,11 @@ export function HeroSection({
       >
         <span
           className="text-xs tracking-[0.3em] uppercase font-medium"
-          style={{ color: CAFE.textFaint }}
+          style={{ color: theme.textFaint }}
         >
           Scroll
         </span>
-        <ChevronDown className="h-4 w-4" style={{ color: CAFE.textFaint }} />
+        <ChevronDown className="h-4 w-4" style={{ color: theme.textFaint }} />
       </motion.div>
     </section>
   );

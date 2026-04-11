@@ -25,6 +25,7 @@ import {
   ExternalLink,
   AlertCircle,
   GripVertical,
+  Undo2,
   Check,
   X,
   ImageOff,
@@ -44,11 +45,18 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
-import { ImageUpload } from "@/components/shared/ImageUpload";
 import { useUploadImage } from "@/hooks/useUploadImage";
 import { Pagination } from "@/components/shared/Pagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -71,6 +79,7 @@ type FormData = Omit<
   | "testimonials"
   | "show_promotions"
   | "about_image_url"
+  | "custom_palettes"
 >;
 
 // ── Tab config ──
@@ -540,8 +549,11 @@ export function AppearancePage() {
   const [newGalleryUrl, setNewGalleryUrl] = useState("");
   const [showPromotions, setShowPromotions] = useState(true);
   const [testimonials, setTestimonials] = useState<TestimonialWithId[]>([]);
+  const [customPalettes, setCustomPalettes] = useState<{ name: string; primary: string; secondary: string }[]>([]);
+  const [paletteModalOpen, setPaletteModalOpen] = useState(false);
+  const [newPalette, setNewPalette] = useState({ name: "", primary: "#6F4E37", secondary: "#C4A882" });
 
-  const { register, handleSubmit, reset, watch, getValues } = useForm<FormData>();
+  const { register, handleSubmit, reset, watch, getValues, setValue } = useForm<FormData>();
 
   // Watch colors for live preview
   const watchedPrimary = watch("primary_color");
@@ -581,6 +593,7 @@ export function AppearancePage() {
     setTestimonials(
       (settings.testimonials ?? []).map((t) => ({ ...t, _id: makeTestimonialId() })),
     );
+    setCustomPalettes(settings.custom_palettes ?? []);
   }
 
   // ── Unsaved changes detection ──
@@ -599,9 +612,10 @@ export function AppearancePage() {
       aboutImageUrl !== (settings.about_image_url ?? null) ||
       JSON.stringify(galleryUrls) !== JSON.stringify(settings.gallery_urls ?? []) ||
       showPromotions !== (settings.show_promotions ?? true) ||
-      JSON.stringify(testimonials) !== JSON.stringify(settings.testimonials ?? []);
+      JSON.stringify(testimonials) !== JSON.stringify(settings.testimonials ?? []) ||
+      JSON.stringify(customPalettes) !== JSON.stringify(settings.custom_palettes ?? []);
     return formChanged || stateChanged;
-  }, [settings, featuredIds, logoUrl, coverUrl, aboutImageUrl, galleryUrls, showPromotions, testimonials, getValues, watchedPrimary, watchedSecondary, watchedCafeName]);
+  }, [settings, featuredIds, logoUrl, coverUrl, aboutImageUrl, galleryUrls, showPromotions, testimonials, customPalettes, getValues, watchedPrimary, watchedSecondary, watchedCafeName]);
 
   const onSubmit = async (data: FormData) => {
     // Validate all URLs before saving
@@ -622,6 +636,7 @@ export function AppearancePage() {
         show_promotions: showPromotions,
         testimonials: testimonials.map(({ _id, ...rest }) => rest),
         featured_product_ids: featuredIds,
+        custom_palettes: customPalettes,
       });
       toast.success("Configuración guardada correctamente");
     } catch {
@@ -675,8 +690,33 @@ export function AppearancePage() {
     setTestimonials((prev) => prev.filter((t) => t._id !== id));
   };
 
+  const [prevColors, setPrevColors] = useState<{ primary: string; secondary: string } | null>(null);
+
   const applyPalette = (primary: string, secondary: string) => {
-    reset({ ...getValues(), primary_color: primary, secondary_color: secondary });
+    const current = getValues();
+    setPrevColors({ primary: current.primary_color, secondary: current.secondary_color });
+    reset({ ...current, primary_color: primary, secondary_color: secondary });
+  };
+
+  const undoPalette = () => {
+    if (!prevColors) return;
+    reset({ ...getValues(), primary_color: prevColors.primary, secondary_color: prevColors.secondary });
+    setPrevColors(null);
+  };
+
+  const addCustomPalette = () => {
+    if (!newPalette.name.trim()) {
+      toast.error("Dale un nombre a tu paleta");
+      return;
+    }
+    setCustomPalettes((prev) => [...prev, { ...newPalette, name: newPalette.name.trim() }]);
+    setNewPalette({ name: "", primary: "#6F4E37", secondary: "#C4A882" });
+    setPaletteModalOpen(false);
+    toast.success("Paleta creada — guarda los cambios para conservarla");
+  };
+
+  const removeCustomPalette = (index: number) => {
+    setCustomPalettes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const activeProducts: Product[] = (products ?? []).filter((p) => p.is_active);
@@ -843,9 +883,26 @@ export function AppearancePage() {
                 <CardContent className="space-y-6">
                   {/* Palettes */}
                   <div className="space-y-3">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Paletas de café
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Paletas de café
+                      </Label>
+                      <AnimatePresence>
+                        {prevColors && (
+                          <motion.button
+                            type="button"
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            onClick={undoPalette}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-muted/50 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            <Undo2 className="h-3 w-3" />
+                            Deshacer
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       {COFFEE_PALETTES.map((palette) => {
                         const isActive =
@@ -888,6 +945,69 @@ export function AppearancePage() {
                     </div>
                   </div>
 
+                  {/* Custom palettes */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Mis paletas
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => setPaletteModalOpen(true)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-xs font-medium text-primary hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Crear paleta
+                      </button>
+                    </div>
+                    {customPalettes.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {customPalettes.map((palette, index) => {
+                          const isActive =
+                            watchedPrimary === palette.primary &&
+                            watchedSecondary === palette.secondary;
+                          return (
+                            <div key={`${palette.name}-${index}`} className="group/custom relative">
+                              <button
+                                type="button"
+                                onClick={() => applyPalette(palette.primary, palette.secondary)}
+                                className={`w-full p-2 rounded-lg border-2 transition-all text-left ${
+                                  isActive
+                                    ? "border-primary ring-2 ring-primary/20"
+                                    : "border-border hover:border-primary/50"
+                                }`}
+                              >
+                                <div className="flex gap-1 mb-1.5">
+                                  <div className="h-5 flex-1 rounded" style={{ backgroundColor: palette.primary }} />
+                                  <div className="h-5 flex-1 rounded" style={{ backgroundColor: palette.secondary }} />
+                                </div>
+                                <p className="text-xs font-medium truncate">{palette.name}</p>
+                                {isActive && (
+                                  <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                    <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                                  </div>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeCustomPalette(index)}
+                                className="absolute -top-1.5 -left-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/custom:opacity-100 transition-opacity shadow-sm cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center py-4 rounded-lg border border-dashed border-border/60">
+                        <p className="text-xs text-muted-foreground/60">
+                          Aún no tienes paletas personalizadas
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Custom pickers */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -897,12 +1017,22 @@ export function AppearancePage() {
                           type="color"
                           id="primary_color"
                           className="h-10 w-14 rounded-md border border-input cursor-pointer"
-                          {...register("primary_color")}
+                          value={watchedPrimary || "#a0522d"}
+                          onChange={(e) =>
+                            setValue("primary_color", e.target.value, {
+                              shouldDirty: true,
+                            })
+                          }
                         />
                         <Input
                           placeholder="#a0522d"
                           className="font-mono"
-                          {...register("primary_color")}
+                          value={watchedPrimary || ""}
+                          onChange={(e) =>
+                            setValue("primary_color", e.target.value, {
+                              shouldDirty: true,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -913,12 +1043,22 @@ export function AppearancePage() {
                           type="color"
                           id="secondary_color"
                           className="h-10 w-14 rounded-md border border-input cursor-pointer"
-                          {...register("secondary_color")}
+                          value={watchedSecondary || "#c8864a"}
+                          onChange={(e) =>
+                            setValue("secondary_color", e.target.value, {
+                              shouldDirty: true,
+                            })
+                          }
                         />
                         <Input
                           placeholder="#c8864a"
                           className="font-mono"
-                          {...register("secondary_color")}
+                          value={watchedSecondary || ""}
+                          onChange={(e) =>
+                            setValue("secondary_color", e.target.value, {
+                              shouldDirty: true,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -1449,6 +1589,106 @@ export function AppearancePage() {
           </Button>
         </motion.div>
       </form>
+
+      {/* ── Create palette modal ── */}
+      <Dialog open={paletteModalOpen} onOpenChange={setPaletteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Crear paleta personalizada
+            </DialogTitle>
+            <DialogDescription>
+              Elige tus colores y dale un nombre a tu paleta
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label>Nombre de la paleta</Label>
+              <Input
+                placeholder="Mi paleta"
+                value={newPalette.name}
+                onChange={(e) => setNewPalette((p) => ({ ...p, name: e.target.value }))}
+                autoFocus
+              />
+            </div>
+
+            {/* Color pickers */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Color primario</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={newPalette.primary}
+                    onChange={(e) => setNewPalette((p) => ({ ...p, primary: e.target.value }))}
+                    className="h-10 w-12 rounded-md border border-input cursor-pointer"
+                  />
+                  <Input
+                    value={newPalette.primary}
+                    onChange={(e) => setNewPalette((p) => ({ ...p, primary: e.target.value }))}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Color secundario</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={newPalette.secondary}
+                    onChange={(e) => setNewPalette((p) => ({ ...p, secondary: e.target.value }))}
+                    className="h-10 w-12 rounded-md border border-input cursor-pointer"
+                  />
+                  <Input
+                    value={newPalette.secondary}
+                    onChange={(e) => setNewPalette((p) => ({ ...p, secondary: e.target.value }))}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Vista previa</Label>
+              <div className="rounded-lg overflow-hidden border">
+                <div className="flex">
+                  <div className="flex-1 h-12" style={{ backgroundColor: newPalette.primary }} />
+                  <div className="flex-1 h-12" style={{ backgroundColor: newPalette.secondary }} />
+                </div>
+                <div className="px-3 py-2 bg-muted/30 flex items-center justify-between">
+                  <span className="text-xs font-medium">
+                    {newPalette.name || "Sin nombre"}
+                  </span>
+                  <div className="flex gap-1">
+                    <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: newPalette.primary }} />
+                    <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: newPalette.secondary }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              onClick={addCustomPalette}
+              disabled={!newPalette.name.trim()}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Crear paleta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

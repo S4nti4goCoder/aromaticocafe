@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Coffee } from "lucide-react";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
 import { usePromotions } from "@/hooks/usePromotions";
 import type { Product } from "@/types";
-import { CAFE, type NavLink } from "./cafeTheme";
+import { CAFE, buildCafeTheme, type NavLink } from "./cafeTheme";
 import { Navbar } from "./sections/Navbar";
 import { HeroSection } from "./sections/HeroSection";
 
@@ -58,6 +58,11 @@ export function LandingPage() {
   const { settings, isLoading } = useCafeSettings();
   const { data: allProducts } = useProducts();
   const { data: allPromotions } = usePromotions();
+
+  const theme = useMemo(
+    () => buildCafeTheme(settings?.primary_color, settings?.secondary_color),
+    [settings?.primary_color, settings?.secondary_color],
+  );
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuModalOpen, setMenuModalOpen] = useState(false);
@@ -140,7 +145,7 @@ export function LandingPage() {
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
         >
-          <Coffee className="h-10 w-10" style={{ color: CAFE.gold }} />
+          <Coffee className="h-10 w-10" style={{ color: theme.gold }} />
         </motion.div>
       </div>
     );
@@ -149,7 +154,7 @@ export function LandingPage() {
   return (
     <div
       className="min-h-screen font-sans overflow-x-hidden"
-      style={{ backgroundColor: CAFE.bg, color: CAFE.text }}
+      style={{ backgroundColor: theme.bg, color: theme.text }}
     >
       <Navbar
         settings={settings}
@@ -160,6 +165,7 @@ export function LandingPage() {
         onNavClick={handleNavClick}
         onScrollToTop={scrollToTop}
         onOpenReserva={() => setReservaModalOpen(true)}
+        theme={theme}
       />
 
       <HeroSection
@@ -167,36 +173,38 @@ export function LandingPage() {
         heroOpacity={heroOpacity}
         heroScale={heroScale}
         onOpenMenu={() => setMenuModalOpen(true)}
+        theme={theme}
       />
 
       <Suspense fallback={null}>
         {settings && (settings.about_title || settings.about_description) && (
-          <AboutSection settings={settings} />
+          <AboutSection settings={settings} theme={theme} />
         )}
 
         {featuredProducts.length > 0 && (
-          <FeaturedProductsSection products={featuredProducts} />
+          <FeaturedProductsSection products={featuredProducts} theme={theme} />
         )}
 
         {settings?.show_promotions && activePromotions.length > 0 && (
-          <PromotionsSection promotions={activePromotions} />
+          <PromotionsSection promotions={activePromotions} theme={theme} />
         )}
 
         {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
-          <GallerySection galleryUrls={settings.gallery_urls} />
+          <GallerySection galleryUrls={settings.gallery_urls} theme={theme} />
         )}
 
         {settings?.testimonials && settings.testimonials.length > 0 && (
-          <TestimonialsSection testimonials={settings.testimonials} />
+          <TestimonialsSection testimonials={settings.testimonials} theme={theme} />
         )}
 
-        <ContactSection settings={settings} />
+        <ContactSection settings={settings} theme={theme} />
 
         <Footer
           settings={settings}
           navLinks={navLinks}
           onNavClick={handleNavClick}
           onScrollToTop={scrollToTop}
+          theme={theme}
         />
 
         {reservaModalOpen && (
@@ -220,6 +228,7 @@ export function LandingPage() {
           scrolled={scrolled}
           hidden={menuModalOpen}
           onScrollToTop={scrollToTop}
+          theme={theme}
         />
       </Suspense>
     </div>
