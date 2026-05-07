@@ -550,6 +550,16 @@ export function AppearancePage() {
   const [showPromotions, setShowPromotions] = useState(true);
   const [testimonials, setTestimonials] = useState<TestimonialWithId[]>([]);
   const [customPalettes, setCustomPalettes] = useState<{ name: string; primary: string; secondary: string }[]>([]);
+  const [sectionFlags, setSectionFlags] = useState({
+    show_about: true,
+    show_featured: true,
+    show_gallery: true,
+    show_testimonials: true,
+    show_contact: true,
+    show_reserve_button: true,
+    show_menu_button: true,
+    show_whatsapp_float: true,
+  });
   const [paletteModalOpen, setPaletteModalOpen] = useState(false);
   const [newPalette, setNewPalette] = useState({ name: "", primary: "#6F4E37", secondary: "#C4A882" });
 
@@ -594,6 +604,16 @@ export function AppearancePage() {
       (settings.testimonials ?? []).map((t) => ({ ...t, _id: makeTestimonialId() })),
     );
     setCustomPalettes(settings.custom_palettes ?? []);
+    setSectionFlags({
+      show_about: settings.show_about ?? true,
+      show_featured: settings.show_featured ?? true,
+      show_gallery: settings.show_gallery ?? true,
+      show_testimonials: settings.show_testimonials ?? true,
+      show_contact: settings.show_contact ?? true,
+      show_reserve_button: settings.show_reserve_button ?? true,
+      show_menu_button: settings.show_menu_button ?? true,
+      show_whatsapp_float: settings.show_whatsapp_float ?? true,
+    });
   }
 
   // ── Unsaved changes detection ──
@@ -613,9 +633,19 @@ export function AppearancePage() {
       JSON.stringify(galleryUrls) !== JSON.stringify(settings.gallery_urls ?? []) ||
       showPromotions !== (settings.show_promotions ?? true) ||
       JSON.stringify(testimonials) !== JSON.stringify(settings.testimonials ?? []) ||
-      JSON.stringify(customPalettes) !== JSON.stringify(settings.custom_palettes ?? []);
+      JSON.stringify(customPalettes) !== JSON.stringify(settings.custom_palettes ?? []) ||
+      JSON.stringify(sectionFlags) !== JSON.stringify({
+        show_about: settings.show_about ?? true,
+        show_featured: settings.show_featured ?? true,
+        show_gallery: settings.show_gallery ?? true,
+        show_testimonials: settings.show_testimonials ?? true,
+        show_contact: settings.show_contact ?? true,
+        show_reserve_button: settings.show_reserve_button ?? true,
+        show_menu_button: settings.show_menu_button ?? true,
+        show_whatsapp_float: settings.show_whatsapp_float ?? true,
+      });
     return formChanged || stateChanged;
-  }, [settings, featuredIds, logoUrl, coverUrl, aboutImageUrl, galleryUrls, showPromotions, testimonials, customPalettes, getValues, watchedPrimary, watchedSecondary, watchedCafeName]);
+  }, [settings, featuredIds, logoUrl, coverUrl, aboutImageUrl, galleryUrls, showPromotions, testimonials, customPalettes, sectionFlags, getValues, watchedPrimary, watchedSecondary, watchedCafeName]);
 
   const onSubmit = async (data: FormData) => {
     // Validate all URLs before saving
@@ -637,6 +667,7 @@ export function AppearancePage() {
         testimonials: testimonials.map(({ _id, ...rest }) => rest),
         featured_product_ids: featuredIds,
         custom_palettes: customPalettes,
+        ...sectionFlags,
       });
       toast.success("Configuración guardada correctamente");
     } catch {
