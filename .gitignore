@@ -39,3 +39,9 @@ coverage/
 
 # OS
 Thumbs.db
+
+# Playwright MCP (browser test artifacts, screenshots)
+.playwright-mcp/
+*.png
+!public/**/*.png
+!src/**/*.png
