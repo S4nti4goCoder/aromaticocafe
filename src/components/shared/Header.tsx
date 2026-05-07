@@ -1,6 +1,7 @@
-import { Bell, LogOut, User } from "lucide-react";
+import { Bell, LogOut, Menu, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useUIStore } from "@/store/uiStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +29,7 @@ export function Header() {
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
+  const toggleMobileSidebar = useUIStore((s) => s.toggleMobileSidebar);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -38,8 +40,21 @@ export function Header() {
     : (user?.email?.slice(0, 2).toUpperCase() ?? "AC");
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
-      <h1 className="text-lg font-semibold">Panel de administración</h1>
+    <header className="flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
+      <div className="flex items-center gap-2 min-w-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMobileSidebar}
+          className="lg:hidden cursor-pointer shrink-0"
+          aria-label="Abrir menú"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="text-base sm:text-lg font-semibold truncate">
+          Panel de administración
+        </h1>
+      </div>
 
       <div className="flex items-center gap-2">
         <ThemeToggle />

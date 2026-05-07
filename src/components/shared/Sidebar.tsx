@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Coffee,
   ChevronDown,
+  X,
   CreditCard,
   Package,
   Tag,
@@ -22,12 +23,8 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useMyPermissions } from "@/hooks/useMyPermissions";
 import { useProfile } from "@/hooks/useProfile";
+import { useUIStore } from "@/store/uiStore";
 import type { PermissionModule } from "@/types";
-
-interface SidebarProps {
-  isOpen: boolean;
-  onToggle: () => void;
-}
 
 interface NavChild {
   label: string;
@@ -92,12 +89,52 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+export function Sidebar() {
   const { data: profile } = useProfile();
   const { data: permissions, isLoading: isLoadingPermissions } =
     useMyPermissions();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(["/inventory"]);
+  const {
+    sidebarOpen,
+    toggleSidebar,
+    mobileSidebarOpen,
+    setMobileSidebarOpen,
+  } = useUIStore();
+
+  // Track desktop viewport so we only animate width on lg+ (on mobile the
+  // drawer is always full-width when shown).
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 1024px)").matches
+      : true,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Auto-close the mobile drawer when navigating to a different route.
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname, setMobileSidebarOpen]);
+
+  // Lock body scroll while the mobile drawer is open.
+  useEffect(() => {
+    if (mobileSidebarOpen && !isDesktop) {
+      const previous = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = previous;
+      };
+    }
+  }, [mobileSidebarOpen, isDesktop]);
+
+  // On desktop, the sidebar width animates between expanded (240) and
+  // collapsed (64). On mobile the drawer is always full 240 when visible.
+  const expanded = isDesktop ? sidebarOpen : true;
 
   const canViewModule = (module: PermissionModule | "dashboard"): boolean => {
     if (module === "dashboard") return true;
@@ -118,14 +155,22 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   return (
     <motion.aside
-      animate={{ width: isOpen ? 240 : 64 }}
+      animate={{ width: expanded ? 240 : 64 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="relative flex h-screen flex-col border-r bg-sidebar text-sidebar-foreground overflow-hidden"
+      className={cn(
+        // Common
+        "flex h-screen flex-col border-r bg-sidebar text-sidebar-foreground overflow-hidden",
+        // Mobile/tablet: fixed overlay drawer
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-300",
+        mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        // Desktop: in-flow, no transform
+        "lg:relative lg:translate-x-0 lg:transition-none",
+      )}
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-3 shrink-0">
         <AnimatePresence>
-          {isOpen && (
+          {expanded && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -140,7 +185,18 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </motion.div>
           )}
         </AnimatePresence>
-        {!isOpen && <Coffee className="h-6 w-6 text-primary mx-auto" />}
+        {!expanded && <Coffee className="h-6 w-6 text-primary mx-auto" />}
+
+        {/* Close button — mobile drawer only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileSidebarOpen(false)}
+          className="lg:hidden cursor-pointer shrink-0"
+          aria-label="Cerrar menú"
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       <Separator />
@@ -157,7 +213,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             return (
               <div key={item.href}>
                 <button
-                  onClick={() => isOpen && toggleExpand(item.href)}
+                  onClick={() => expanded && toggleExpand(item.href)}
                   className={cn(
                     "w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                     "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -168,7 +224,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   <AnimatePresence>
-                    {isOpen && (
+                    {expanded && (
                       <motion.span
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -180,7 +236,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                       </motion.span>
                     )}
                   </AnimatePresence>
-                  {isOpen && (
+                  {expanded && (
                     <motion.div
                       animate={{ rotate: isExpanded ? 180 : 0 }}
                       transition={{ duration: 0.2 }}
@@ -191,7 +247,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 </button>
 
                 <AnimatePresence>
-                  {isOpen && isExpanded && (
+                  {expanded && isExpanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -242,7 +298,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             >
               <item.icon className="h-4 w-4 shrink-0" />
               <AnimatePresence>
-                {isOpen && (
+                {expanded && (
                   <motion.span
                     initial={{ opacity: 0, x: -5 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -261,16 +317,16 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
       <Separator />
 
-      {/* Toggle */}
-      <div className="p-2 shrink-0">
+      {/* Toggle (desktop collapse/expand) — hidden on mobile drawer */}
+      <div className="hidden lg:block p-2 shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          onClick={onToggle}
+          onClick={toggleSidebar}
           className="w-full"
         >
           <motion.div
-            animate={{ rotate: isOpen ? 0 : 180 }}
+            animate={{ rotate: sidebarOpen ? 0 : 180 }}
             transition={{ duration: 0.2 }}
           >
             <ChevronLeft className="h-4 w-4" />
