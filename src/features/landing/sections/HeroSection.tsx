@@ -101,27 +101,29 @@ export function HeroSection({
           </motion.p>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.65 }}
-          className="flex items-center justify-center gap-4 flex-wrap"
-        >
-          <motion.button
-            onClick={onOpenMenu}
-            whileHover={{ scale: 1.04, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-bold cursor-pointer"
-            style={{
-              background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
-              color: "#0f0d0b",
-              boxShadow: `0 8px 32px ${theme.gold}30`,
-            }}
+        {settings?.show_menu_button !== false && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.65 }}
+            className="flex items-center justify-center gap-4 flex-wrap"
           >
-            <Coffee className="h-4 w-4" />
-            Ver menú
-          </motion.button>
-        </motion.div>
+            <motion.button
+              onClick={onOpenMenu}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-bold cursor-pointer"
+              style={{
+                background: `linear-gradient(135deg, ${theme.gold}, ${theme.amber})`,
+                color: "#0f0d0b",
+                boxShadow: `0 8px 32px ${theme.gold}30`,
+              }}
+            >
+              <Coffee className="h-4 w-4" />
+              Ver menú
+            </motion.button>
+          </motion.div>
+        )}
       </motion.div>
 
       <motion.div

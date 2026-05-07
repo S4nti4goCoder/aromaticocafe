@@ -91,7 +91,7 @@ export function Navbar({
 
         {/* Acciones */}
         <div className="flex items-center gap-3 shrink-0">
-          {settings?.reservation_whatsapp && (
+          {settings?.show_reserve_button !== false && settings?.reservation_whatsapp && (
             <motion.button
               onClick={onOpenReserva}
               whileHover={{ scale: 1.04 }}
@@ -159,7 +159,7 @@ export function Navbar({
               {link.label}
             </button>
           ))}
-          {settings?.reservation_whatsapp && (
+          {settings?.show_reserve_button !== false && settings?.reservation_whatsapp && (
             <a
               href={`https://wa.me/${settings.reservation_whatsapp}`}
               target="_blank"

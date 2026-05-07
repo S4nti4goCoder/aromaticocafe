@@ -22,7 +22,8 @@ export function FloatingButtons({
     <div
       className={`fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3 transition-opacity duration-200 ${hidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}
     >
-      {(settings?.whatsapp || settings?.reservation_whatsapp) && (
+      {settings?.show_whatsapp_float !== false &&
+        (settings?.whatsapp || settings?.reservation_whatsapp) && (
         <motion.a
           href={`https://wa.me/${(settings?.whatsapp || settings?.reservation_whatsapp)?.replace(/\D/g, "")}`}
           target="_blank"
