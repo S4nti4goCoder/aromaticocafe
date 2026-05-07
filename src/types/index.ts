@@ -332,6 +332,14 @@ export interface CafeSettings {
   about_image_url: string | null;
   gallery_urls: string[];
   show_promotions: boolean;
+  show_about: boolean;
+  show_featured: boolean;
+  show_gallery: boolean;
+  show_testimonials: boolean;
+  show_contact: boolean;
+  show_reserve_button: boolean;
+  show_menu_button: boolean;
+  show_whatsapp_float: boolean;
   testimonials: {
     name: string;
     comment: string;
