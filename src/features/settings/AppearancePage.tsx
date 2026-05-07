@@ -32,6 +32,11 @@ import {
   Monitor,
   Tablet,
   Smartphone,
+  Eye,
+  Sparkles,
+  MousePointerClick,
+  CalendarDays,
+  Coffee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +50,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +90,7 @@ type FormData = Omit<
 
 // ── Tab config ──
 const TABS = [
+  { value: "sections", label: "Secciones", icon: Eye, accent: "text-fuchsia-400" },
   { value: "general", label: "General", icon: Store, accent: "text-amber-400" },
   { value: "media", label: "Imágenes", icon: Image, accent: "text-sky-400" },
   { value: "colors", label: "Colores", icon: Palette, accent: "text-rose-400" },
@@ -287,6 +294,68 @@ function ColorPreview({
           <div className="w-3 h-3 rounded-full bg-white/30" />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Section visibility toggle row ──
+function SectionToggleRow({
+  icon: Icon,
+  iconColor,
+  iconBg,
+  label,
+  description,
+  checked,
+  onChange,
+  hint,
+  isLast,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  iconBg: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  hint?: string;
+  isLast?: boolean;
+}) {
+  return (
+    <div
+      className={`group flex items-start gap-4 px-6 py-4 transition-colors hover:bg-accent/30 ${
+        isLast ? "" : "border-b border-border/40"
+      }`}
+    >
+      <div
+        className={`mt-0.5 shrink-0 h-9 w-9 rounded-xl flex items-center justify-center transition-opacity ${iconBg} ${
+          checked ? "opacity-100" : "opacity-50"
+        }`}
+      >
+        <Icon className={`h-4 w-4 ${iconColor}`} />
+      </div>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <p
+          className={`text-sm font-semibold leading-tight transition-colors ${
+            checked ? "text-foreground" : "text-foreground/60"
+          }`}
+        >
+          {label}
+        </p>
+        <p className="text-xs text-muted-foreground/70 mt-1 leading-relaxed">
+          {description}
+        </p>
+        {hint && (
+          <p className="text-xs text-amber-400/90 mt-2 flex items-start gap-1.5 leading-relaxed">
+            <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>{hint}</span>
+          </p>
+        )}
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        className="cursor-pointer mt-1.5 shrink-0"
+      />
     </div>
   );
 }
@@ -540,7 +609,7 @@ export function AppearancePage() {
   const { settings, isLoading, updateSettings, isSaving } = useCafeSettings();
   const { data: products } = useProducts();
 
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("sections");
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -829,6 +898,84 @@ export function AppearancePage() {
               );
             })}
           </nav>
+
+          {/* ── SECCIONES (visibility toggles) ── */}
+          <TabsContent value="sections">
+            <div className="space-y-4">
+              {/* Card 1: Sections */}
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-fuchsia-400" />
+                    Secciones de la landing
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">
+                    Activa o desactiva qué aparece en la página pública. Los cambios se ven en tiempo real en la vista previa.
+                  </p>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <SectionToggleRow
+                    icon={Users}
+                    iconColor="text-violet-400"
+                    iconBg="bg-violet-500/10"
+                    label="Nuestra historia"
+                    description="Cuenta el origen y los valores del café"
+                    checked={sectionFlags.show_about}
+                    onChange={(v) => setSectionFlags((s) => ({ ...s, show_about: v }))}
+                  />
+                  <SectionToggleRow
+                    icon={Star}
+                    iconColor="text-yellow-400"
+                    iconBg="bg-yellow-500/10"
+                    label="Favoritos"
+                    description="Productos destacados que elegiste para la landing"
+                    checked={sectionFlags.show_featured}
+                    onChange={(v) => setSectionFlags((s) => ({ ...s, show_featured: v }))}
+                  />
+                  <SectionToggleRow
+                    icon={Sparkles}
+                    iconColor="text-amber-400"
+                    iconBg="bg-amber-500/10"
+                    label="Promociones"
+                    description="Ofertas activas del mes"
+                    checked={showPromotions}
+                    onChange={setShowPromotions}
+                  />
+                  <SectionToggleRow
+                    icon={Camera}
+                    iconColor="text-cyan-400"
+                    iconBg="bg-cyan-500/10"
+                    label="Galería"
+                    description="Fotos del ambiente y los platos"
+                    checked={sectionFlags.show_gallery}
+                    onChange={(v) => setSectionFlags((s) => ({ ...s, show_gallery: v }))}
+                  />
+                  <SectionToggleRow
+                    icon={Quote}
+                    iconColor="text-orange-400"
+                    iconBg="bg-orange-500/10"
+                    label="Reseñas"
+                    description="Testimonios destacados de clientes"
+                    checked={sectionFlags.show_testimonials}
+                    onChange={(v) => setSectionFlags((s) => ({ ...s, show_testimonials: v }))}
+                  />
+                  <SectionToggleRow
+                    icon={MapPin}
+                    iconColor="text-emerald-400"
+                    iconBg="bg-emerald-500/10"
+                    label="Contacto"
+                    description="Dirección, horarios, redes sociales y mapa"
+                    checked={sectionFlags.show_contact}
+                    onChange={(v) => setSectionFlags((s) => ({ ...s, show_contact: v }))}
+                    isLast
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Card 2: CTA buttons — populated in Task 4 */}
+              {/* Card 3: Live preview — populated in Task 6 */}
+            </div>
+          </TabsContent>
 
           {/* ── GENERAL ── */}
           <TabsContent value="general">
