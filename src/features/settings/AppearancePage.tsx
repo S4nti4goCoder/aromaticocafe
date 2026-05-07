@@ -972,7 +972,67 @@ export function AppearancePage() {
                 </CardContent>
               </Card>
 
-              {/* Card 2: CTA buttons — populated in Task 4 */}
+              {/* Card 2: CTA buttons */}
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MousePointerClick className="h-5 w-5 text-fuchsia-400" />
+                    Botones de acción
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">
+                    Controla los CTAs principales que aparecen sobre la landing.
+                  </p>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <SectionToggleRow
+                    icon={CalendarDays}
+                    iconColor="text-emerald-400"
+                    iconBg="bg-emerald-500/10"
+                    label='Botón "Reservar" (Navbar)'
+                    description="Aparece arriba a la derecha en desktop y en el menú móvil"
+                    checked={sectionFlags.show_reserve_button}
+                    onChange={(v) =>
+                      setSectionFlags((s) => ({ ...s, show_reserve_button: v }))
+                    }
+                    hint={
+                      sectionFlags.show_reserve_button && !watch("reservation_whatsapp")
+                        ? "Configura el WhatsApp de reservas en la pestaña Contacto para que el botón aparezca"
+                        : undefined
+                    }
+                  />
+                  <SectionToggleRow
+                    icon={Coffee}
+                    iconColor="text-amber-400"
+                    iconBg="bg-amber-500/10"
+                    label='Botón "Ver menú" (Hero)'
+                    description="Botón principal en el banner superior de la landing"
+                    checked={sectionFlags.show_menu_button}
+                    onChange={(v) =>
+                      setSectionFlags((s) => ({ ...s, show_menu_button: v }))
+                    }
+                  />
+                  <SectionToggleRow
+                    icon={MessageCircle}
+                    iconColor="text-green-500"
+                    iconBg="bg-green-500/10"
+                    label="WhatsApp flotante"
+                    description="Botón verde que aparece en la esquina inferior derecha"
+                    checked={sectionFlags.show_whatsapp_float}
+                    onChange={(v) =>
+                      setSectionFlags((s) => ({ ...s, show_whatsapp_float: v }))
+                    }
+                    hint={
+                      sectionFlags.show_whatsapp_float &&
+                      !watch("whatsapp") &&
+                      !watch("reservation_whatsapp")
+                        ? "Necesitas configurar al menos un número de WhatsApp en Contacto"
+                        : undefined
+                    }
+                    isLast
+                  />
+                </CardContent>
+              </Card>
+
               {/* Card 3: Live preview — populated in Task 6 */}
             </div>
           </TabsContent>
