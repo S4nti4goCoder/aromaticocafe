@@ -82,7 +82,7 @@ export function HeroSection({
           className="font-black tracking-tight leading-none mb-6"
           style={{
             color: theme.white,
-            fontSize: "clamp(3rem, 10vw, 8rem)",
+            fontSize: "clamp(2.75rem, 8vw, 7rem)",
             textShadow: "0 4px 40px rgba(0,0,0,0.5)",
           }}
         >

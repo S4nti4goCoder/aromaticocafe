@@ -41,7 +41,7 @@ export function Navbar({
         paddingBottom: scrolled ? "14px" : "24px",
       }}
     >
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
         {/* Logo */}
         <button
           onClick={onScrollToTop}
@@ -108,7 +108,7 @@ export function Navbar({
           )}
           <Link
             to="/login"
-            className="text-xs px-5 py-2.5 rounded-full transition-all duration-300 font-medium cursor-pointer"
+            className="text-xs px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full transition-all duration-300 font-medium cursor-pointer"
             style={{
               border: `1px solid ${theme.border}`,
               color: theme.textMuted,
@@ -120,7 +120,7 @@ export function Navbar({
           {navLinks.length > 0 && (
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="lg:hidden p-2.5 rounded-full transition-all cursor-pointer"
+              className="lg:hidden p-2 sm:p-2.5 rounded-full transition-all cursor-pointer"
               style={{
                 backgroundColor: theme.bgCard,
                 border: `1px solid ${theme.border}`,
