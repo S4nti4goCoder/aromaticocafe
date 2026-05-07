@@ -80,7 +80,15 @@ export type Database = {
           reservation_whatsapp: string | null
           saturday: string | null
           secondary_color: string | null
+          show_about: boolean
+          show_contact: boolean
+          show_featured: boolean
+          show_gallery: boolean
+          show_menu_button: boolean
           show_promotions: boolean | null
+          show_reserve_button: boolean
+          show_testimonials: boolean
+          show_whatsapp_float: boolean
           slogan: string | null
           sunday: string | null
           testimonials: Json | null
@@ -111,7 +119,15 @@ export type Database = {
           reservation_whatsapp?: string | null
           saturday?: string | null
           secondary_color?: string | null
+          show_about?: boolean
+          show_contact?: boolean
+          show_featured?: boolean
+          show_gallery?: boolean
+          show_menu_button?: boolean
           show_promotions?: boolean | null
+          show_reserve_button?: boolean
+          show_testimonials?: boolean
+          show_whatsapp_float?: boolean
           slogan?: string | null
           sunday?: string | null
           testimonials?: Json | null
@@ -142,7 +158,15 @@ export type Database = {
           reservation_whatsapp?: string | null
           saturday?: string | null
           secondary_color?: string | null
+          show_about?: boolean
+          show_contact?: boolean
+          show_featured?: boolean
+          show_gallery?: boolean
+          show_menu_button?: boolean
           show_promotions?: boolean | null
+          show_reserve_button?: boolean
+          show_testimonials?: boolean
+          show_whatsapp_float?: boolean
           slogan?: string | null
           sunday?: string | null
           testimonials?: Json | null
