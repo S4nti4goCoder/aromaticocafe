@@ -322,7 +322,7 @@ function SectionToggleRow({
 }) {
   return (
     <div
-      className={`group flex items-start gap-4 px-6 py-4 transition-colors hover:bg-accent/30 ${
+      className={`group relative flex items-start gap-4 px-6 py-4 transition-colors hover:bg-accent/30 ${
         isLast ? "" : "border-b border-border/40"
       }`}
     >
@@ -701,7 +701,8 @@ export function AppearancePage() {
       aboutImageUrl !== (settings.about_image_url ?? null) ||
       JSON.stringify(galleryUrls) !== JSON.stringify(settings.gallery_urls ?? []) ||
       showPromotions !== (settings.show_promotions ?? true) ||
-      JSON.stringify(testimonials) !== JSON.stringify(settings.testimonials ?? []) ||
+      JSON.stringify(testimonials.map(({ _id, ...rest }) => rest)) !==
+        JSON.stringify(settings.testimonials ?? []) ||
       JSON.stringify(customPalettes) !== JSON.stringify(settings.custom_palettes ?? []) ||
       JSON.stringify(sectionFlags) !== JSON.stringify({
         show_about: settings.show_about ?? true,
@@ -744,12 +745,12 @@ export function AppearancePage() {
     }
   };
 
-  // ── Live preview iframe dispatcher ──
-  const previewIframeRef = useRef<HTMLIFrameElement>(null);
-
+  // ── Live preview dispatcher: posts merged settings to the ResponsivePreview iframe ──
   useEffect(() => {
     const sendPreview = () => {
-      const frame = previewIframeRef.current;
+      const frame = document.querySelector<HTMLIFrameElement>(
+        'iframe[title="Landing preview"]',
+      );
       if (!frame) return;
       const formValues = getValues();
       const payload = {
@@ -1079,32 +1080,7 @@ export function AppearancePage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Live preview */}
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Monitor className="h-5 w-5 text-fuchsia-400" />
-                    Vista previa
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">
-                    Así se verá tu landing con los cambios actuales.{" "}
-                    <span className="text-amber-400/90 font-medium">
-                      Los cambios todavía no están guardados
-                    </span>{" "}
-                    hasta que presiones "Guardar cambios".
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-background shadow-2xl shadow-fuchsia-500/5">
-                    <iframe
-                      ref={previewIframeRef}
-                      src="/landing"
-                      className="w-full h-[700px]"
-                      title="Vista previa de la landing"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Live preview is the global ResponsivePreview rendered below the Tabs */}
             </div>
           </TabsContent>
 
