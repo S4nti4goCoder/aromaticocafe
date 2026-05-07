@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
@@ -744,6 +744,52 @@ export function AppearancePage() {
     }
   };
 
+  // ── Live preview iframe dispatcher ──
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const sendPreview = () => {
+      const frame = previewIframeRef.current;
+      if (!frame) return;
+      const formValues = getValues();
+      const payload = {
+        ...settings,
+        ...formValues,
+        logo_url: logoUrl,
+        cover_url: coverUrl,
+        about_image_url: aboutImageUrl,
+        gallery_urls: galleryUrls,
+        show_promotions: showPromotions,
+        testimonials: testimonials.map(({ _id, ...rest }) => rest),
+        featured_product_ids: featuredIds,
+        custom_palettes: customPalettes,
+        ...sectionFlags,
+      };
+      frame.contentWindow?.postMessage(
+        { type: "preview-update", settings: payload },
+        window.location.origin,
+      );
+    };
+
+    sendPreview();
+
+    const subscription = watch(() => sendPreview());
+    return () => subscription.unsubscribe();
+  }, [
+    settings,
+    logoUrl,
+    coverUrl,
+    aboutImageUrl,
+    galleryUrls,
+    showPromotions,
+    testimonials,
+    featuredIds,
+    customPalettes,
+    sectionFlags,
+    watch,
+    getValues,
+  ]);
+
   const toggleFeatured = (productId: string) => {
     setFeaturedIds((prev) =>
       prev.includes(productId)
@@ -1033,7 +1079,32 @@ export function AppearancePage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Live preview — populated in Task 6 */}
+              {/* Card 3: Live preview */}
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Monitor className="h-5 w-5 text-fuchsia-400" />
+                    Vista previa
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">
+                    Así se verá tu landing con los cambios actuales.{" "}
+                    <span className="text-amber-400/90 font-medium">
+                      Los cambios todavía no están guardados
+                    </span>{" "}
+                    hasta que presiones "Guardar cambios".
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-background shadow-2xl shadow-fuchsia-500/5">
+                    <iframe
+                      ref={previewIframeRef}
+                      src="/landing"
+                      className="w-full h-[700px]"
+                      title="Vista previa de la landing"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
