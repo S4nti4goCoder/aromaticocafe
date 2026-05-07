@@ -117,12 +117,14 @@ export function LandingPage() {
     {
       id: "nosotros",
       label: "Nuestra historia",
-      show: !!(effectiveSettings?.about_title || effectiveSettings?.about_description),
+      show:
+        effectiveSettings?.show_about !== false &&
+        !!(effectiveSettings?.about_title || effectiveSettings?.about_description),
     },
     {
       id: "menu",
       label: "Favoritos",
-      show: featuredProducts.length > 0,
+      show: effectiveSettings?.show_featured !== false && featuredProducts.length > 0,
     },
     {
       id: "promociones",
@@ -132,21 +134,27 @@ export function LandingPage() {
     {
       id: "galeria",
       label: "Galería",
-      show: !!(effectiveSettings?.gallery_urls && effectiveSettings.gallery_urls.length > 0),
+      show:
+        effectiveSettings?.show_gallery !== false &&
+        !!(effectiveSettings?.gallery_urls && effectiveSettings.gallery_urls.length > 0),
     },
     {
       id: "resenas",
       label: "Reseñas",
-      show: !!(effectiveSettings?.testimonials && effectiveSettings.testimonials.length > 0),
+      show:
+        effectiveSettings?.show_testimonials !== false &&
+        !!(effectiveSettings?.testimonials && effectiveSettings.testimonials.length > 0),
     },
     {
       id: "contacto",
       label: "Contacto",
-      show: !!(
-        effectiveSettings?.address ||
-        effectiveSettings?.maps_embed_url ||
-        effectiveSettings?.phone
-      ),
+      show:
+        effectiveSettings?.show_contact !== false &&
+        !!(
+          effectiveSettings?.address ||
+          effectiveSettings?.maps_embed_url ||
+          effectiveSettings?.phone
+        ),
     },
   ].filter((l) => l.show);
 
