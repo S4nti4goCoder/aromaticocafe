@@ -202,27 +202,33 @@ export function LandingPage() {
       />
 
       <Suspense fallback={null}>
-        {effectiveSettings && (effectiveSettings.about_title || effectiveSettings.about_description) && (
-          <AboutSection settings={effectiveSettings} theme={theme} />
-        )}
+        {effectiveSettings?.show_about !== false &&
+          effectiveSettings &&
+          (effectiveSettings.about_title || effectiveSettings.about_description) && (
+            <AboutSection settings={effectiveSettings} theme={theme} />
+          )}
 
-        {featuredProducts.length > 0 && (
+        {effectiveSettings?.show_featured !== false && featuredProducts.length > 0 && (
           <FeaturedProductsSection products={featuredProducts} theme={theme} />
         )}
 
-        {effectiveSettings?.show_promotions && activePromotions.length > 0 && (
+        {!!effectiveSettings?.show_promotions && activePromotions.length > 0 && (
           <PromotionsSection promotions={activePromotions} theme={theme} />
         )}
 
-        {effectiveSettings?.gallery_urls && effectiveSettings.gallery_urls.length > 0 && (
-          <GallerySection galleryUrls={effectiveSettings.gallery_urls} theme={theme} />
-        )}
+        {effectiveSettings?.show_gallery !== false &&
+          !!effectiveSettings?.gallery_urls?.length && (
+            <GallerySection galleryUrls={effectiveSettings.gallery_urls} theme={theme} />
+          )}
 
-        {effectiveSettings?.testimonials && effectiveSettings.testimonials.length > 0 && (
-          <TestimonialsSection testimonials={effectiveSettings.testimonials} theme={theme} />
-        )}
+        {effectiveSettings?.show_testimonials !== false &&
+          !!effectiveSettings?.testimonials?.length && (
+            <TestimonialsSection testimonials={effectiveSettings.testimonials} theme={theme} />
+          )}
 
-        <ContactSection settings={effectiveSettings} theme={theme} />
+        {effectiveSettings?.show_contact !== false && (
+          <ContactSection settings={effectiveSettings} theme={theme} />
+        )}
 
         <Footer
           settings={effectiveSettings}
