@@ -4,7 +4,7 @@ import { Coffee } from "lucide-react";
 import { useCafeSettings } from "@/hooks/useCafeSettings";
 import { useProducts } from "@/hooks/useProducts";
 import { usePromotions } from "@/hooks/usePromotions";
-import type { Product } from "@/types";
+import type { CafeSettings, Product } from "@/types";
 import { CAFE, buildCafeTheme, type NavLink } from "./cafeTheme";
 import { Navbar } from "./sections/Navbar";
 import { HeroSection } from "./sections/HeroSection";
@@ -59,9 +59,34 @@ export function LandingPage() {
   const { data: allProducts } = useProducts();
   const { data: allPromotions } = usePromotions();
 
+  // Live preview: when rendered inside an iframe, accept settings overrides via postMessage.
+  const [previewOverrides, setPreviewOverrides] = useState<Partial<CafeSettings> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || window.parent === window) return;
+
+    const handler = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "preview-update" && e.data.settings) {
+        setPreviewOverrides(e.data.settings as Partial<CafeSettings>);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const effectiveSettings = useMemo(
+    () =>
+      previewOverrides
+        ? ({ ...settings, ...previewOverrides } as CafeSettings)
+        : settings,
+    [settings, previewOverrides],
+  );
+
   const theme = useMemo(
-    () => buildCafeTheme(settings?.primary_color, settings?.secondary_color),
-    [settings?.primary_color, settings?.secondary_color],
+    () => buildCafeTheme(effectiveSettings?.primary_color, effectiveSettings?.secondary_color),
+    [effectiveSettings?.primary_color, effectiveSettings?.secondary_color],
   );
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,7 +108,7 @@ export function LandingPage() {
   }, []);
 
   const featuredProducts: Product[] = (allProducts ?? []).filter(
-    (p) => p.is_active && (settings?.featured_product_ids ?? []).includes(p.id),
+    (p) => p.is_active && (effectiveSettings?.featured_product_ids ?? []).includes(p.id),
   );
 
   const activePromotions = (allPromotions ?? []).filter((p) => p.is_active);
@@ -92,7 +117,7 @@ export function LandingPage() {
     {
       id: "nosotros",
       label: "Nuestra historia",
-      show: !!(settings?.about_title || settings?.about_description),
+      show: !!(effectiveSettings?.about_title || effectiveSettings?.about_description),
     },
     {
       id: "menu",
@@ -102,25 +127,25 @@ export function LandingPage() {
     {
       id: "promociones",
       label: "Promociones",
-      show: !!(settings?.show_promotions && activePromotions.length > 0),
+      show: !!(effectiveSettings?.show_promotions && activePromotions.length > 0),
     },
     {
       id: "galeria",
       label: "Galería",
-      show: !!(settings?.gallery_urls && settings.gallery_urls.length > 0),
+      show: !!(effectiveSettings?.gallery_urls && effectiveSettings.gallery_urls.length > 0),
     },
     {
       id: "resenas",
       label: "Reseñas",
-      show: !!(settings?.testimonials && settings.testimonials.length > 0),
+      show: !!(effectiveSettings?.testimonials && effectiveSettings.testimonials.length > 0),
     },
     {
       id: "contacto",
       label: "Contacto",
       show: !!(
-        settings?.address ||
-        settings?.maps_embed_url ||
-        settings?.phone
+        effectiveSettings?.address ||
+        effectiveSettings?.maps_embed_url ||
+        effectiveSettings?.phone
       ),
     },
   ].filter((l) => l.show);
@@ -157,7 +182,7 @@ export function LandingPage() {
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
       <Navbar
-        settings={settings}
+        settings={effectiveSettings}
         scrolled={scrolled}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
@@ -169,7 +194,7 @@ export function LandingPage() {
       />
 
       <HeroSection
-        settings={settings}
+        settings={effectiveSettings}
         heroOpacity={heroOpacity}
         heroScale={heroScale}
         onOpenMenu={() => setMenuModalOpen(true)}
@@ -177,30 +202,30 @@ export function LandingPage() {
       />
 
       <Suspense fallback={null}>
-        {settings && (settings.about_title || settings.about_description) && (
-          <AboutSection settings={settings} theme={theme} />
+        {effectiveSettings && (effectiveSettings.about_title || effectiveSettings.about_description) && (
+          <AboutSection settings={effectiveSettings} theme={theme} />
         )}
 
         {featuredProducts.length > 0 && (
           <FeaturedProductsSection products={featuredProducts} theme={theme} />
         )}
 
-        {settings?.show_promotions && activePromotions.length > 0 && (
+        {effectiveSettings?.show_promotions && activePromotions.length > 0 && (
           <PromotionsSection promotions={activePromotions} theme={theme} />
         )}
 
-        {settings?.gallery_urls && settings.gallery_urls.length > 0 && (
-          <GallerySection galleryUrls={settings.gallery_urls} theme={theme} />
+        {effectiveSettings?.gallery_urls && effectiveSettings.gallery_urls.length > 0 && (
+          <GallerySection galleryUrls={effectiveSettings.gallery_urls} theme={theme} />
         )}
 
-        {settings?.testimonials && settings.testimonials.length > 0 && (
-          <TestimonialsSection testimonials={settings.testimonials} theme={theme} />
+        {effectiveSettings?.testimonials && effectiveSettings.testimonials.length > 0 && (
+          <TestimonialsSection testimonials={effectiveSettings.testimonials} theme={theme} />
         )}
 
-        <ContactSection settings={settings} theme={theme} />
+        <ContactSection settings={effectiveSettings} theme={theme} />
 
         <Footer
-          settings={settings}
+          settings={effectiveSettings}
           navLinks={navLinks}
           onNavClick={handleNavClick}
           onScrollToTop={scrollToTop}
@@ -211,20 +236,20 @@ export function LandingPage() {
           <ReservaModal
             open={reservaModalOpen}
             onClose={() => setReservaModalOpen(false)}
-            whatsapp={settings?.reservation_whatsapp ?? settings?.whatsapp}
-            cafeName={settings?.cafe_name}
+            whatsapp={effectiveSettings?.reservation_whatsapp ?? effectiveSettings?.whatsapp}
+            cafeName={effectiveSettings?.cafe_name}
           />
         )}
         {menuModalOpen && (
           <MenuModal
             open={menuModalOpen}
             onClose={() => setMenuModalOpen(false)}
-            cafeName={settings?.cafe_name}
+            cafeName={effectiveSettings?.cafe_name}
           />
         )}
 
         <FloatingButtons
-          settings={settings}
+          settings={effectiveSettings}
           scrolled={scrolled}
           hidden={menuModalOpen}
           onScrollToTop={scrollToTop}
