@@ -701,8 +701,9 @@ export function AppearancePage() {
       aboutImageUrl !== (settings.about_image_url ?? null) ||
       JSON.stringify(galleryUrls) !== JSON.stringify(settings.gallery_urls ?? []) ||
       showPromotions !== (settings.show_promotions ?? true) ||
-      JSON.stringify(testimonials.map(({ _id, ...rest }) => rest)) !==
-        JSON.stringify(settings.testimonials ?? []) ||
+      JSON.stringify(
+        testimonials.map((t) => ({ name: t.name, comment: t.comment, rating: t.rating })),
+      ) !== JSON.stringify(settings.testimonials ?? []) ||
       JSON.stringify(customPalettes) !== JSON.stringify(settings.custom_palettes ?? []) ||
       JSON.stringify(sectionFlags) !== JSON.stringify({
         show_about: settings.show_about ?? true,
@@ -734,7 +735,11 @@ export function AppearancePage() {
         about_image_url: aboutImageUrl,
         gallery_urls: galleryUrls,
         show_promotions: showPromotions,
-        testimonials: testimonials.map(({ _id, ...rest }) => rest),
+        testimonials: testimonials.map((t) => ({
+          name: t.name,
+          comment: t.comment,
+          rating: t.rating,
+        })),
         featured_product_ids: featuredIds,
         custom_palettes: customPalettes,
         ...sectionFlags,
@@ -761,7 +766,11 @@ export function AppearancePage() {
         about_image_url: aboutImageUrl,
         gallery_urls: galleryUrls,
         show_promotions: showPromotions,
-        testimonials: testimonials.map(({ _id, ...rest }) => rest),
+        testimonials: testimonials.map((t) => ({
+          name: t.name,
+          comment: t.comment,
+          rating: t.rating,
+        })),
         featured_product_ids: featuredIds,
         custom_palettes: customPalettes,
         ...sectionFlags,
