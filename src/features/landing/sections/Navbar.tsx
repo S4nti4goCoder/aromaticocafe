@@ -75,7 +75,7 @@ export function Navbar({
 
         {/* Links desktop */}
         {navLinks.length > 0 && (
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <button
                 key={link.id}
@@ -120,7 +120,7 @@ export function Navbar({
           {navLinks.length > 0 && (
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="md:hidden p-2.5 rounded-full transition-all cursor-pointer"
+              className="lg:hidden p-2.5 rounded-full transition-all cursor-pointer"
               style={{
                 backgroundColor: theme.bgCard,
                 border: `1px solid ${theme.border}`,
@@ -143,7 +143,7 @@ export function Navbar({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
-          className="md:hidden px-6 pb-5 pt-3 flex flex-col gap-1"
+          className="lg:hidden px-6 pb-5 pt-3 flex flex-col gap-1"
           style={{
             backgroundColor: "rgba(15,13,11,0.97)",
             borderBottom: `1px solid ${theme.border}`,
