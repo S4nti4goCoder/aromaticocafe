@@ -1,0 +1,255 @@
+import { useEffect } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useUpdateStock } from "@/hooks/useInventory";
+import { useCategories } from "@/hooks/useCategories";
+import { useProducts } from "@/hooks/useProducts";
+import type { InventoryMovementType } from "@/types";
+
+interface StockMovementModalProps {
+  open: boolean;
+  onClose: () => void;
+  preselectedProductId?: string;
+  preselectedType?: InventoryMovementType;
+}
+
+interface FormData {
+  category_id: string;
+  product_id: string;
+  type: InventoryMovementType;
+  quantity: string;
+  reason: string;
+}
+
+const defaultValues: FormData = {
+  category_id: "",
+  product_id: "",
+  type: "entrada",
+  quantity: "",
+  reason: "",
+};
+
+export function StockMovementModal({
+  open,
+  onClose,
+  preselectedProductId,
+  preselectedType,
+}: StockMovementModalProps) {
+  const updateStock = useUpdateStock();
+  const { data: categories = [] } = useCategories();
+  const { data: products = [] } = useProducts();
+
+  const { register, handleSubmit, reset, control } = useForm<FormData>({
+    defaultValues,
+  });
+
+  useEffect(() => {
+    if (open) {
+      const product = preselectedProductId
+        ? products.find((p) => p.id === preselectedProductId)
+        : null;
+      reset({
+        ...defaultValues,
+        category_id: product?.category_id ?? "",
+        product_id: preselectedProductId ?? "",
+        type: preselectedType ?? "entrada",
+      });
+    }
+  }, [open, preselectedProductId, preselectedType, products, reset]);
+
+  const selectedCategoryId = useWatch({ control, name: "category_id" });
+  const selectedProductId = useWatch({ control, name: "product_id" });
+  const selectedType = useWatch({ control, name: "type" });
+  const quantity = useWatch({ control, name: "quantity" });
+
+  const filteredProducts = products.filter(
+    (p) =>
+      p.is_active &&
+      (selectedCategoryId === "all" || p.category_id === selectedCategoryId),
+  );
+
+  const onSubmit = async (data: FormData) => {
+    if (!data.product_id || !data.quantity) return;
+
+    await updateStock.mutateAsync({
+      productId: data.product_id,
+      type: data.type,
+      quantity: parseInt(data.quantity),
+      reason: data.reason || undefined,
+    });
+
+    reset(defaultValues);
+    onClose();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={() => {
+        reset(defaultValues);
+        onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Registrar movimiento de inventario</DialogTitle>
+          <DialogDescription>
+            Selecciona el producto y registra la entrada, salida o ajuste de
+            stock.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Categoría</Label>
+            <Controller
+              name="category_id"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {/* Product */}
+          <div className="space-y-2">
+            <Label>Producto *</Label>
+            <Controller
+              name="product_id"
+              control={control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar producto" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {filteredProducts.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No hay productos
+                      </SelectItem>
+                    ) : (
+                      filteredProducts.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {/* Type */}
+          <div className="space-y-2">
+            <Label>Tipo de movimiento *</Label>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="entrada">
+                      Entrada (agregar stock)
+                    </SelectItem>
+                    <SelectItem value="salida">
+                      Salida (reducir stock)
+                    </SelectItem>
+                    <SelectItem value="ajuste">
+                      Ajuste (fijar cantidad exacta)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {/* Quantity */}
+          <div className="space-y-2">
+            <Label>
+              {selectedType === "ajuste"
+                ? "Nueva cantidad total *"
+                : "Cantidad *"}
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="0"
+              {...register("quantity", { required: true })}
+            />
+          </div>
+
+          {/* Reason */}
+          <div className="space-y-2">
+            <Label>Motivo</Label>
+            <Input
+              placeholder="Ej: Compra a proveedor, merma, ajuste de inventario..."
+              {...register("reason")}
+            />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                reset(defaultValues);
+                onClose();
+              }}
+              disabled={updateStock.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={
+                !selectedProductId || !quantity || updateStock.isPending
+              }
+            >
+              {updateStock.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Registrar
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

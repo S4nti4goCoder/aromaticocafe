@@ -1,0 +1,290 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import type { Category, CategoryFormData } from "@/types";
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: async (): Promise<Category[]> => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCategoryProductCounts() {
+  return useQuery({
+    queryKey: ["category_product_counts"],
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        if (!row.category_id) continue;
+        counts[row.category_id] = (counts[row.category_id] ?? 0) + 1;
+      }
+      return counts;
+    },
+  });
+}
+
+export function useToggleCategoryActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
+      // 1. Update the category
+      const { error: catError } = await supabase
+        .from("categories")
+        .update({ is_active })
+        .eq("id", id);
+      if (catError) throw catError;
+
+      // 2. Cascade to products, remembering which ones we changed
+      let affected = 0;
+      if (!is_active) {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: false, deactivated_by_category: true })
+          .eq("category_id", id)
+          .eq("is_active", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      } else {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: true, deactivated_by_category: false })
+          .eq("category_id", id)
+          .eq("deactivated_by_category", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      }
+
+      return { is_active, affected };
+    },
+    onSuccess: ({ is_active, affected }) => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      const action = is_active ? "activada" : "desactivada";
+      const detail =
+        affected > 0
+          ? ` · ${affected} producto${affected === 1 ? "" : "s"} ${action}${affected === 1 ? "" : "s"} en cascada`
+          : "";
+      toast.success(`Categoría ${action}${detail}`);
+    },
+    onError: () => {
+      toast.error("Error al cambiar el estado de la categoría");
+    },
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (formData: CategoryFormData) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          name: formData.name,
+          description: formData.description || null,
+          is_active: formData.is_active,
+          image_url: formData.image_url,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Categoría creada correctamente");
+    },
+    onError: () => {
+      toast.error("Error al crear la categoría");
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      formData,
+    }: {
+      id: string;
+      formData: CategoryFormData;
+    }) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .update({
+          name: formData.name,
+          description: formData.description || null,
+          is_active: formData.is_active,
+          image_url: formData.image_url,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Categoría actualizada correctamente");
+    },
+    onError: () => {
+      toast.error("Error al actualizar la categoría");
+    },
+  });
+}
+
+export function useDuplicateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (category: Category) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          name: `${category.name} (copia)`,
+          description: category.description,
+          is_active: category.is_active,
+          image_url: category.image_url,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Categoría duplicada");
+    },
+    onError: () => {
+      toast.error("Error al duplicar la categoría");
+    },
+  });
+}
+
+export function useBulkUpdateCategoriesActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      is_active,
+    }: {
+      ids: string[];
+      is_active: boolean;
+    }) => {
+      const { error: catError } = await supabase
+        .from("categories")
+        .update({ is_active })
+        .in("id", ids);
+      if (catError) throw catError;
+
+      let affected = 0;
+      if (!is_active) {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: false, deactivated_by_category: true })
+          .in("category_id", ids)
+          .eq("is_active", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      } else {
+        const { data, error: prodError } = await supabase
+          .from("products")
+          .update({ is_active: true, deactivated_by_category: false })
+          .in("category_id", ids)
+          .eq("deactivated_by_category", true)
+          .select("id");
+        if (prodError) throw prodError;
+        affected = data?.length ?? 0;
+      }
+
+      return { count: ids.length, is_active, affected };
+    },
+    onSuccess: ({ count, is_active, affected }) => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      const action = is_active ? "activada" : "desactivada";
+      const detail =
+        affected > 0
+          ? ` · ${affected} producto${affected === 1 ? "" : "s"} en cascada`
+          : "";
+      toast.success(
+        `${count} categoría${count === 1 ? "" : "s"} ${action}${count === 1 ? "" : "s"}${detail}`,
+      );
+    },
+    onError: () => {
+      toast.error("Error al actualizar las categorías");
+    },
+  });
+}
+
+export function useBulkDeleteCategories() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(
+        `${count} categoría${count === 1 ? "" : "s"} eliminada${count === 1 ? "" : "s"}`,
+      );
+    },
+    onError: (error: { code?: string }) => {
+      if (error?.code === "23503") {
+        toast.error(
+          "Una o más categorías tienen productos asociados y no pueden eliminarse",
+        );
+      } else {
+        toast.error("Error al eliminar las categorías");
+      }
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Categoría eliminada");
+    },
+    onError: (error: { code?: string }) => {
+      if (error?.code === "23503") {
+        toast.error(
+          "No puedes eliminar una categoría con productos asociados",
+        );
+      } else {
+        toast.error("Error al eliminar la categoría");
+      }
+    },
+  });
+}
