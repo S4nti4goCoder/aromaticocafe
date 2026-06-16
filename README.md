@@ -13,7 +13,7 @@
   <img src="public/aromaticocafe.gif" alt="Aromático Café — demo" width="90%" />
 </p>
 
-**Live demo:** 
+**Live demo:** https://aromaticocafe-demo.vercel.app/
 
 ---
 
