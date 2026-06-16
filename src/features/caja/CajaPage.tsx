@@ -80,7 +80,6 @@ import { loadParked, saveParked, type ParkedOrder } from "@/features/caja/parkin
 import {
   loadCurrentCart,
   saveCurrentCart,
-  clearCurrentCart,
 } from "@/features/caja/currentCart";
 import { DENOMINATIONS, ITEM_TAGS } from "@/features/caja/constants";
 import { formatCurrency } from "@/features/caja/format";

@@ -2,7 +2,7 @@
 // Anular revierte el stock y el costo de cada producto y registra un
 // ingreso compensatorio en contabilidad (todo atómico en el RPC).
 import { useState } from "react";
-import { Loader2, Ban } from "lucide-react";
+import { Ban } from "lucide-react";
 import {
   Dialog,
   DialogContent,
